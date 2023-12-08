@@ -1,0 +1,189 @@
+#pragma once
+
+#include <array>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <utility>
+
+namespace anny
+{
+
+inline constexpr size_t END = std::numeric_limits<size_t>::max();
+
+
+template <typename T> class VecView;
+
+/*
+    Vec - linear algebra vector of numbers, dynamically allocated and owning its memory.
+*/
+template <typename T>
+class Vec
+{
+public:
+    template <typename DT>
+    friend
+    class VecView;
+
+    Vec() = default;
+
+    Vec(size_t size, const T v = T{})
+    : m_data(size, v)
+    {}
+
+    Vec(std::initializer_list<T> lst)
+    : m_data(lst)
+    {}
+
+    Vec(const VecView<T>& vv)
+    : m_data(vv.begin(), vv.end())
+    {}
+
+    Vec(const Vec& other)
+    : m_data(other.m_data)
+    {}
+
+    Vec(Vec&& other)
+    : m_data(std::move(other.m_data))
+    {}
+
+    Vec& operator=(const Vec& other)
+    {
+        m_data = other.m_data;
+        return *this;
+    }
+
+    Vec& operator=(Vec&& other)
+    {
+        m_data = std::move(other.m_data);
+        return *this;
+    }
+
+    size_t size() const noexcept { return m_data.size(); }
+    bool is_same_size(const Vec& other) const noexcept  { return size() == other.size(); }
+
+    T& operator[](size_t index) { return m_data[index]; }
+    const T& operator[](size_t index) const { return m_data[index]; }
+
+    VecView<T> view() { return VecView<T>(*this); }
+    VecView<const T> view() const { return VecView<const T>(*this); }
+    VecView<T> view(size_t start, size_t size = END)
+    {
+        auto iter_start = m_data.begin() + start;
+        auto iter_end = (size != END) ? (iter_start + size) : m_data.end();
+        return VecView<T>(iter_start, iter_end);
+    }
+
+    // math
+
+    Vec& operator+=(const Vec& other)
+    {
+        assert(is_same_size(other));
+        std::transform(m_data.begin(), m_data.end(), other.m_data.begin(), m_data.begin(), std::plus<T>());
+        return *this;
+    }
+
+    Vec& operator-=(const Vec& other)
+    {
+        assert(is_same_size(other));
+        std::transform(m_data.begin(), m_data.end(), other.m_data.begin(), m_data.begin(), std::minus<T>());
+        return *this;
+    }
+
+    template <typename Const>
+    Vec& operator*=(const Const& k)
+    {
+        for (size_t i = 0; i < size(); ++i)
+            m_data[i] *= k;
+        return *this;
+    }
+
+    template <typename Const>
+    Vec& operator/=(const Const& k)
+    {
+        for (size_t i = 0; i < size(); ++i)
+            m_data[i] /= k;
+        return *this;
+    }
+
+    double dot(const Vec& other)
+    {
+        assert(is_same_size(other));
+        return std::inner_product(m_data.begin(), m_data.end(), other.m_data.begin(), T{0});
+    }
+
+    template <typename DT>
+    friend
+    DT dot(const Vec<DT>& left, const Vec<DT>& right);
+
+private:
+    std::vector<T> m_data;
+};
+
+
+template <typename T>
+Vec<T> operator+(const Vec<T>& left, const Vec<T>& right)
+{
+    Vec<T> result{left};
+    result += right;
+    return result;
+}
+
+template <typename T>
+Vec<T> operator-(const Vec<T>& left, const Vec<T>& right)
+{
+    Vec<T> result{left};
+    result -= right;
+    return result;
+}
+
+template <typename T, typename Const>
+Vec<T> operator*(const Vec<T>& v, const Const& k)
+{
+    Vec<T> result{v};
+    result *= k;
+    return result;
+}
+
+template <typename T, typename Const>
+Vec<T> operator*(const Const& k, const Vec<T>& v)
+{
+    return v * k;
+}
+
+template <typename T, typename Const>
+Vec<T> operator/(const Vec<T>& v, const Const& k)
+{
+    Vec<T> result{v};
+    result /= k;
+    return result;
+}
+
+template <typename T>
+T dot(const Vec<T>& left, const Vec<T>& right)
+{
+    assert(left.is_same_size(right));
+    return std::inner_product(left.m_data.begin(), left.m_data.end(), right.m_data.begin(), T{0});
+}
+
+template <typename T>
+bool operator==(const Vec<T>& left, const Vec<T>& right)
+{
+    if (!left.is_same_size(right))
+        return false;
+
+    for (size_t i = 0; i < left.size(); ++i)
+    {
+        if (left[i] != right[i])
+            return false;
+    }
+    return true;
+}
+
+template <typename T>
+bool operator!=(const Vec<T>& left, const Vec<T>& right)
+{
+    return !(left == right);
+}
+
+}  // namespace anny
