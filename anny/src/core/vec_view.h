@@ -52,64 +52,6 @@ public:
     T& operator[](size_t index) { return m_data[index]; }
     const T& operator[](size_t index) const { return m_data[index]; }
 
-    /*
-    class iterator
-    {
-    public:
-        using difference_type = std::ptrdiff_t;
-        using value_type = T;
-        using pointer = value_type*;
-        using reference = value_type&;
-        using const_reference = const value_type&;
-        using iterator_category = std::random_access_iterator_tag;
-
-        iterator(VecView& view, size_t index)
-            : m_ptr{ &(view.m_data[index]) }
-        {}
-        reference operator*() { return *m_ptr; }
-        const_reference operator*() const { return *m_ptr; }
-        iterator& operator++() { ++m_ptr; return *this; };
-        bool operator==(const iterator& other) const { return m_ptr == other.m_ptr; }
-        bool operator!=(const iterator& other) const { return !(*this == other); };
-
-        template <typename Y>
-        friend difference_type operator-(const typename VecView<Y>::iterator& left, const typename VecView<Y>::iterator& right);
-    private:
-        pointer m_ptr;
-    };
-
-    class const_iterator
-    {
-    public:
-        using difference_type = std::ptrdiff_t;
-        using value_type = T;
-        using pointer = const T*;
-        using reference = const T&;
-        using const_reference = const T&;
-        using iterator_category = std::random_access_iterator_tag;
-
-        const_iterator(const VecView& view, size_t index)
-            : m_ptr{ &(view.m_data[index]) }
-        {}
-        const_reference operator*() const { return *m_ptr; }
-        const_iterator& operator++() { ++m_ptr; return *this; };
-        bool operator==(const const_iterator& other) const { return m_ptr == other.m_ptr; }
-        bool operator!=(const const_iterator& other) const { return !(*this == other); };
-
-        template <typename Y>
-        friend difference_type operator-(const typename VecView<Y>::const_iterator& left, const typename VecView<Y>::const_iterator& right);
-    private:
-        pointer m_ptr;
-    };
-    
-    iterator begin() { return iterator(*this, 0); }
-    iterator end() { return iterator(*this, m_size); }
-    const_iterator cbegin() const { return const_iterator(*this, 0); }
-    const_iterator cend() const { return const_iterator(*this, 0); }
-    const_iterator begin() const { return cbegin(); }
-    const_iterator end() const { return cend(); }
-    */
-
     using iterator = T*;
     using const_iterator = const T*;
 
