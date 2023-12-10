@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iterator>
 #include "vec.h"
 
 
@@ -110,19 +109,6 @@ private:
     size_t m_size{0};
 };
 
-/*
-template <typename T>
-typename VecView<T>::iterator::difference_type operator-(const typename VecView<T>::iterator& left, const typename VecView<T>::iterator& right)
-{
-    return left.m_ptr - right.m_ptr;
-}
-
-template <typename T>
-typename VecView<T>::const_iterator::difference_type operator-(const typename VecView<T>::const_iterator& left, const typename VecView<T>::const_iterator& right)
-{
-    return left.m_ptr - right.m_ptr;
-}
-*/
 
 // math
 
