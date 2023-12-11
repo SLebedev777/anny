@@ -108,9 +108,32 @@ TEST(MatrixTests, MatrixStorageVVTest0)
             {4, 5, 6},
             {7, 8, 9}
     };
-    std::pair<size_t, size_t> res_shape{ 3, 3 };
+    Shape res_shape{ 3, 3 };
+    Vec<int> row = { 4, 5, 6 };
     EXPECT_EQ(m1.shape(), res_shape);
-    EXPECT_EQ(m1[1], Vec<int>({ 4, 5, 6 }));
+    EXPECT_EQ(m1[1], row.view());
     EXPECT_EQ(m1(2, 0), 7);  // indexing (row, col)
+    }
+}
+
+TEST(MatrixTests, MatrixCreateTest0)
+{
+    {
+        size_t M = 20, N = 10;
+        Matrix<float> m(M, N);
+        EXPECT_EQ(m.shape(), Shape(M, N));
+    }
+
+    {
+        Matrix<int> m = {
+            {1, 2, 3},
+            {4, 5, 6}
+        };
+        Shape shape_expected = { 2, 3 };
+        EXPECT_EQ(m.shape(), shape_expected);
+        Vec<int> row0 = { 1, 2, 3 };
+        Vec<int> row1 = { 4, 5, 6 };
+        EXPECT_EQ(m[0], row0.view());
+        EXPECT_EQ(m[1], row1.view());
     }
 }
