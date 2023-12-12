@@ -28,6 +28,17 @@ TEST(VecTests, VecCalcTest0)
 
     EXPECT_EQ(v1 / 2, Vec<double>({0.5, 1.0, 1.5}));
     }
+
+    {
+    Vec<int> v1{ 1, 2, 3 };
+    Vec<int> expected_minus(v1);
+    Vec<int> expected_plus{ 6, 7, 8 };
+    v1 += 5;
+    EXPECT_EQ(v1, expected_plus);
+    v1 -= 3;
+    v1 -= 2;
+    EXPECT_EQ(v1, expected_minus);
+    }
 }
 
 TEST(VecViewTests, VecViewCtorTest0)
@@ -89,6 +100,18 @@ TEST(VecViewTests, VecViewCalcTest0)
         auto vv2 = v2.view(3);     // {3, 2, 1}
         EXPECT_EQ(dot(vv1, vv2), 28);
     }
+    {
+        Vec<int> v1{ 1, 2, 3 };
+        Vec<int> expected_minus(v1);
+        Vec<int> expected_plus{ 6, 7, 8 };
+        auto vv1 = v1.view();
+        vv1 += 5;
+        EXPECT_EQ(vv1, expected_plus.view());
+        vv1 -= 3;
+        vv1 -= 2;
+        EXPECT_EQ(vv1, expected_minus.view());
+    }
+
 }
 
 TEST(VecViewTests, VecViewConstnessTest0)
@@ -137,3 +160,66 @@ TEST(MatrixTests, MatrixCreateTest0)
         EXPECT_EQ(m[1], row1.view());
     }
 }
+
+TEST(MatrixTests, MatrixCalcTest0)
+{
+    {
+        Matrix<int> m = {
+            {1, 2, 3},
+            {4, 5, 6}
+        };
+        Matrix<int> expected = {
+            {6, 7, 8},
+            {9, 10, 11}
+        };
+
+        m += 5;
+        EXPECT_EQ(m, expected);
+
+    }
+
+    {
+        Matrix<int> m = {
+            {1, 2, 3},
+            {4, 5, 6}
+        };
+        Matrix<int> expected_same(m);
+        Matrix<int> expected_mul = {
+            {3, 6, 9},
+            {12, 15, 18}
+        };
+
+        const int k = 3;
+        m *= k;
+        EXPECT_EQ(m, expected_mul);
+        m /= k;
+        EXPECT_EQ(m, expected_same);
+    }
+
+    {
+        Matrix<int> m = {
+            {1, 2, 3},
+            {4, 5, 6}
+        };
+        Matrix<int> expected1 = {
+            {0, 0, 0},
+            {3, 3, 3}
+        };
+        Matrix<int> expected2 = {
+            {-3, -6, -9},
+            {0, -3, -6}
+        };
+
+        Vec<int> v = { -1, -2, -3 };
+        auto vv = v.view();
+        m += vv;
+
+        EXPECT_EQ(m, expected1);
+
+        vv *= -3;  // {3, 6, 9}
+        m -= vv;
+
+        EXPECT_EQ(m, expected2);
+    }
+}
+

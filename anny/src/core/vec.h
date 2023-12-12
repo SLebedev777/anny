@@ -76,6 +76,18 @@ public:
 
     // math
 
+    Vec& operator+=(const T& k)
+    {
+        std::for_each(m_data.begin(), m_data.end(), [&k](auto& el) { el += k; });
+        return *this;
+    }
+
+    Vec& operator-=(const T& k)
+    {
+        std::for_each(m_data.begin(), m_data.end(), [&k](auto& el) { el -= k; });
+        return *this;
+    }
+
     Vec& operator+=(const Vec& other)
     {
         assert(is_same_size(other));

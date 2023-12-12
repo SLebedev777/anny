@@ -64,6 +64,18 @@ public:
 
     // math
 
+    VecView& operator+=(const T& k)
+    {
+        std::for_each(begin(), end(), [&k](auto& el) { el += k; });
+        return *this;
+    }
+
+    VecView& operator-=(const T& k)
+    {
+        std::for_each(begin(), end(), [&k](auto& el) { el -= k; });
+        return *this;
+    }
+
     VecView& operator+=(const VecView& other)
     {
         assert(is_same_size(other));

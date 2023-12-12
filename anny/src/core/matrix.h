@@ -43,7 +43,7 @@ public:
     }
 
     VecView<DType> operator[](size_t row)  { return m_data[row]; }
-    const VecView<DType> operator[](size_t row) const { return m_data[row]; }
+    VecView<const DType> operator[](size_t row) const { return m_data[row]; }
 
     DType& operator()(size_t row, size_t col)  { return m_data[row][col]; }
     const DType& operator()(size_t row, size_t col) const  { return m_data[row][col]; }
@@ -61,6 +61,25 @@ public:
 private:
     std::vector<Vec<DType>> m_data;
 };
+
+template <typename T>
+bool operator==(const MatrixStorageVV<T>& left, const MatrixStorageVV<T>& right)
+{
+    if (left.shape() != right.shape())
+        return false;
+    for (size_t i = 0; i < left.num_rows(); i++)
+    {
+        if (left[i] != right[i])
+            return false;
+    }
+    return true;
+}
+
+template <typename T>
+bool operator!=(const MatrixStorageVV<T>& left, const MatrixStorageVV<T>& right)
+{
+    return !(left == right);
+}
 
 
 /*
@@ -97,7 +116,7 @@ public:
     Shape shape() const { return { m_rows, m_cols }; }
 
     VecView<DType> operator[](size_t row) { return VecView<DType>(m_data.data() + row * m_cols, m_cols); }
-    const VecView<DType> operator[](size_t row) const { return VecView<DType>(m_data.data() + row * m_cols, m_cols); }
+    VecView<const DType> operator[](size_t row) const { return VecView<const DType>(m_data.data() + row * m_cols, m_cols); }
 
     DType& operator()(size_t row, size_t col) { return m_data[pos(row, col)]; }
     const DType& operator()(size_t row, size_t col) const { return m_data[pos(row, col)]; }
@@ -113,6 +132,27 @@ private:
     size_t m_rows;
     size_t m_cols;
 };
+
+
+template <typename T>
+bool operator==(const MatrixStorageContiguous<T>& left, const MatrixStorageContiguous<T>& right)
+{
+    if (left.shape() != right.shape())
+        return false;
+    for (size_t i = 0; i < left.num_rows(); i++)
+    {
+        if (left[i] != right[i])
+            return false;
+    }
+    return true;
+}
+
+template <typename T>
+bool operator!=(const MatrixStorageContiguous<T>& left, const MatrixStorageContiguous<T>& right)
+{
+    return !(left == right);
+}
+
 
 
 /*
@@ -146,9 +186,103 @@ public:
     size_t num_rows() const { return m_storage.num_rows(); }
     size_t num_cols() const { return m_storage.num_cols(); }
 
+    // math
+
+    // operations with a number
+
+    Matrix& operator+=(const T& k)
+    {
+        for (size_t i = 0; i < num_rows(); ++i)
+        {
+            auto row_view = m_storage[i];
+            row_view += k;
+        }
+        return *this;
+    }
+
+    Matrix& operator-=(const T& k)
+    {
+        for (size_t i = 0; i < num_rows(); ++i)
+        {
+            auto row_view = m_storage[i];
+            row_view -= k;
+        }
+        return *this;
+    }
+
+    Matrix& operator*=(const T& k)
+    {
+        for (size_t i = 0; i < num_rows(); ++i)
+        {
+            auto row_view = m_storage[i];
+            row_view *= k;
+        }
+        return *this;
+    }
+
+    Matrix& operator/=(const T& k)
+    {
+        for (size_t i = 0; i < num_rows(); ++i)
+        {
+            auto row_view = m_storage[i];
+            row_view /= k;
+        }
+        return *this;
+    }
+
+    // operations with a vector
+
+    Matrix& operator+=(const VecView<T>& vec)
+    {
+        assert(vec.size() == num_cols());
+
+        for (size_t i = 0; i < num_rows(); ++i)
+        {
+            auto row_view = m_storage[i];
+            row_view += vec;
+        }
+        return *this;
+    }
+
+    Matrix& operator-=(const VecView<T>& vec)
+    {
+        assert(vec.size() == num_cols());
+
+        for (size_t i = 0; i < num_rows(); ++i)
+        {
+            auto row_view = m_storage[i];
+            row_view -= vec;
+        }
+        return *this;
+    }
+
+    // TODO: matrix.dot(vec)
+
+
+    template <typename _T, typename _Storage>
+    friend
+    bool operator==(const Matrix<_T, _Storage>& left, const Matrix<_T, _Storage>& right);
+
+    template <typename _T, typename _Storage>
+    friend
+    bool operator!=(const Matrix<_T, _Storage>& left, const Matrix<_T, _Storage>& right);
+
 private:
     Storage m_storage;
 };
+
+
+template <typename T, typename Storage>
+bool operator==(const Matrix<T, Storage>& left, const Matrix<T, Storage>& right)
+{
+    return left.m_storage == right.m_storage;
+}
+
+template <typename T, typename Storage = MatrixStorageContiguous<T>>
+bool operator!=(const Matrix<T, Storage>& left, const Matrix<T, Storage>& right)
+{
+    return !(left == right);
+}
 
 
 }  // namespace anny
