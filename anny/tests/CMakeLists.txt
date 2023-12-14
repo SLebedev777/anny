@@ -4,6 +4,7 @@ set(SOURCES)
 
 list(APPEND SOURCES
 	"main.cpp"
+	"VecTests.cpp"
 	"MatrixTests.cpp"
 )
 

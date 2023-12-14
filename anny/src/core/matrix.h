@@ -7,6 +7,7 @@
 #include <utility>
 #include "vec.h"
 
+
 namespace anny
 {
     using Shape = std::pair<size_t, size_t>;
@@ -256,8 +257,16 @@ public:
         return *this;
     }
 
-    // TODO: matrix.dot(vec)
-
+    Vec<T> dot(const VecView<T>& v)
+    {
+        Vec<T> result(num_rows());
+        for (size_t i = 0; i < num_rows(); ++i)
+        {
+            auto row_view = m_storage[i];
+            result[i] = anny::dot(row_view, v);
+        }
+        return result;
+    }
 
     template <typename _T, typename _Storage>
     friend
