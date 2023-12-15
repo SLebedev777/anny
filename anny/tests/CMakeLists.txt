@@ -6,6 +6,7 @@ list(APPEND SOURCES
 	"main.cpp"
 	"VecTests.cpp"
 	"MatrixTests.cpp"
+	"DistanceTests.cpp"
 )
 
 # VERY IMPORTANT!!! THIS IS NEEDED THAT GTEST WILL NOT OVERRIDE MAIN PROJECT'S COMPILING&LINKING SETTINGS!
