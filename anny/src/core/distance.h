@@ -6,6 +6,12 @@
 
 namespace anny
 {
+constexpr double PI = 3.14159265358979323846;  // pi is a part of standard only in C++ 20...
+
+template<typename T>
+static bool are_floats_equal(T f1, T f2) {
+	return (std::fabs(f1 - f2) <= std::numeric_limits<T>::epsilon() * std::fmax(std::fabs(f1), std::fabs(f2)));
+}
 
 template <typename T>
 T l2_norm_squared(const VecView<T>& vec)
@@ -38,6 +44,25 @@ T l2_distance(const VecView<T>& v1, const VecView<T>& v2)
 {
 	auto sub = v1 - v2;
 	return l2_norm(sub.view());
+}
+
+template <typename T>
+T cosine_similarity(const VecView<T>& v1, const VecView<T>& v2, bool need_normalize=false)
+{
+	auto sim = dot(v1, v2);
+	if (need_normalize)
+	{
+		sim /= l2_norm(v1) * l2_norm(v2);
+	}
+	return sim;
+}
+
+
+template <typename T>
+T cosine_distance(const VecView<T>& v1, const VecView<T>& v2, bool need_normalize=false)
+{
+	constexpr T one{ 1 };
+	return one - cosine_similarity(v1, v2, need_normalize);
 }
 
 }
