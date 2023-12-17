@@ -162,6 +162,8 @@ bool operator!=(const MatrixStorageContiguous<T>& left, const MatrixStorageConti
 template <typename T, typename Storage = MatrixStorageContiguous<T>>
 class Matrix
 {
+    static_assert(std::is_arithmetic_v<T>);
+
 public:
     Matrix() = default;
 

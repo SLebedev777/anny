@@ -12,6 +12,8 @@ namespace anny
 template <typename T>
 class VecView
 {
+    static_assert(std::is_arithmetic_v<T>);
+
 public:
     VecView() = default;
     VecView(const VecView&) = default;

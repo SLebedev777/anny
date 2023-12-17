@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <numeric>
 #include <utility>
+#include <type_traits>
+
 
 namespace anny
 {
@@ -20,6 +22,8 @@ template <typename T> class VecView;
 template <typename T>
 class Vec
 {
+    static_assert(std::is_arithmetic_v<T>);
+
 public:
     template <typename DT>
     friend
