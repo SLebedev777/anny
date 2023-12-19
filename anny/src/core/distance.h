@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <type_traits>
+#include <functional>
 #include "vec_view.h"
 
 namespace anny
@@ -57,12 +58,36 @@ T cosine_similarity(const VecView<T>& v1, const VecView<T>& v2, bool need_normal
 	return sim;
 }
 
-
 template <typename T>
-T cosine_distance(const VecView<T>& v1, const VecView<T>& v2, bool need_normalize=false)
+T cosine_distance(const VecView<T>& v1, const VecView<T>& v2)
 {
 	constexpr T one{ 1 };
-	return one - cosine_similarity(v1, v2, need_normalize);
+	return one - cosine_similarity(v1, v2, false);
+}
+
+enum class DistanceId: size_t
+{
+	L2 = 0,
+	L2_SQUARED,
+	COSINE,
+	UNKNOWN = static_cast<size_t>(-1)
+};
+
+template <typename T>
+using DistanceFunc = std::function<T(const VecView<T>& v1, const VecView<T>& v2)>;
+
+template <typename T>
+DistanceFunc<T> distance_func_factory(DistanceId dist_id)
+{
+	switch (dist_id)
+	{
+	case DistanceId::L2:
+		return anny::l2_distance<T>;
+	case DistanceId::COSINE:
+		return anny::cosine_distance<T>;
+	default:
+		throw std::runtime_error("DistanceId unsupported");
+	}
 }
 
 }
