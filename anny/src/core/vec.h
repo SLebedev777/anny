@@ -39,6 +39,10 @@ public:
     : m_data(lst)
     {}
 
+    Vec(const std::vector<T>& data)
+    : m_data(data)
+    {}
+
     Vec(const VecView<T>& vv)
     : m_data(vv.begin(), vv.end())
     {}

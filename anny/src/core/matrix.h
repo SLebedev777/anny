@@ -19,9 +19,10 @@ template <typename DType>
 class MatrixStorageVV
 {
 public:
-    MatrixStorageVV() = delete;  // no sense to create (0, 0) matrix
+    MatrixStorageVV() = default;
     MatrixStorageVV(const MatrixStorageVV&) = default;
     MatrixStorageVV(MatrixStorageVV&&) = default;
+    MatrixStorageVV& operator=(MatrixStorageVV&&) = default;
 
     MatrixStorageVV(size_t rows, size_t cols)
     {
@@ -42,6 +43,24 @@ public:
             ++i;
         }
     }
+
+    // copy ctor from data stored in STL container
+    MatrixStorageVV(const std::vector<std::vector<DType>>& data)
+    {
+        m_data.reserve(data.size());
+        for (const auto& row : data)
+            m_data.push_back(row);
+    }
+
+    // move ctor from data stored in STL container
+    MatrixStorageVV(std::vector<std::vector<DType>>&& data)
+        : m_data(std::move(data))
+    {
+        m_data.reserve(data.size());
+        for (auto&& row : data)
+            m_data.push_back(std::move(row));
+    }
+
 
     VecView<DType> operator[](size_t row)  { return m_data[row]; }
     VecView<const DType> operator[](size_t row) const { return m_data[row]; }
@@ -90,9 +109,10 @@ template <typename DType>
 class MatrixStorageContiguous
 {
 public:
-    MatrixStorageContiguous() = delete;
+    MatrixStorageContiguous() = default;
     MatrixStorageContiguous(const MatrixStorageContiguous&) = default;
     MatrixStorageContiguous(MatrixStorageContiguous&&) = default;
+    MatrixStorageContiguous& operator=(MatrixStorageContiguous&&) = default;
 
     MatrixStorageContiguous(size_t rows, size_t cols)
     : m_data(rows * cols)
@@ -113,6 +133,18 @@ public:
             iter += m_cols;
         }
     }
+
+    MatrixStorageContiguous(const std::vector<DType>& data, size_t cols)
+        : m_data(data)
+        , m_rows(data.size())
+        , m_cols(cols)
+    {}
+
+    MatrixStorageContiguous(std::vector<DType>&& data, size_t cols)
+        : m_data(std::move(data))
+        , m_rows(data.size())
+        , m_cols(cols)
+    {}
 
     Shape shape() const { return { m_rows, m_cols }; }
 
@@ -169,6 +201,7 @@ public:
 
     Matrix(const Matrix&) = default;
     Matrix(Matrix&&) = default;
+    Matrix& operator=(Matrix&& other) = default;
 
     Matrix(size_t rows, size_t cols)
         : m_storage(rows, cols)
@@ -176,6 +209,10 @@ public:
 
     Matrix(std::initializer_list<std::initializer_list<T>> lst)
         : m_storage(lst)
+    {}
+
+    Matrix(const Storage& storage)
+        : m_storage(storage)
     {}
 
     Shape shape() const { return m_storage.shape(); }
