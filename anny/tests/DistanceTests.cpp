@@ -44,4 +44,16 @@ TEST(DistanceTests, VectorNormTest)
     }
 }
 
+TEST(DistanceTests, DistanceFactoryTest)
+{
+    {
+        Vec<float> v1 = { 1.0f, 2.0f, 3.0f };
+        Vec<float> v2 = { 4.0f, 5.0f, 6.0f };
+
+        auto distance_func = distance_func_factory<float>(anny::DistanceId::L2);
+        EXPECT_TRUE(are_floats_equal((float)sqrt(27.0f), distance_func(v1, v2)));
+
+    }
+}
+
 
