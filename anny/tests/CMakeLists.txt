@@ -7,6 +7,7 @@ list(APPEND SOURCES
 	"VecTests.cpp"
 	"MatrixTests.cpp"
 	"DistanceTests.cpp"
+	"CsvLoaderTests.cpp"
 	"VanillaKnnTests.cpp"
 )
 
