@@ -9,6 +9,13 @@ list(APPEND SOURCES
 	"DistanceTests.cpp"
 	"CsvLoaderTests.cpp"
 	"VanillaKnnTests.cpp"
+	"KDTreeTests.cpp"
+)
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
 )
 
 # VERY IMPORTANT!!! THIS IS NEEDED THAT GTEST WILL NOT OVERRIDE MAIN PROJECT'S COMPILING&LINKING SETTINGS!
@@ -16,9 +23,14 @@ if (MSVC)
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 endif()
 
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+
 # Add source to this project's executable.
 add_executable (${BINARY} ${SOURCES})
 
+include(GoogleTest)
 add_test(NAME ${BINARY} COMMAND ${BINARY})
 
 target_include_directories(${BINARY} PUBLIC "../src")
