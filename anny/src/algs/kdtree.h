@@ -23,8 +23,8 @@ namespace anny
 		virtual ~KDTree() {}
 
 		void fit(const std::vector<std::vector<T>>& data) override;
-		std::vector<index_t> knn_query(const std::vector<T>& vec, size_t k) override;
-		std::vector<index_t> radius_query(const std::vector<T>& vec, T radius) override;
+		IndexVector knn_query(const std::vector<T>& vec, size_t k) override;
+		IndexVector radius_query(const std::vector<T>& vec, T radius) override;
 	
 	private:
 		struct Node;
@@ -37,6 +37,7 @@ namespace anny
 			T split;
 			NodePtr left = nullptr;
 			NodePtr right = nullptr;
+			Node* parent = nullptr;
 
 			bool is_leaf() const { return left == nullptr && right == nullptr; }
 		};
@@ -45,19 +46,20 @@ namespace anny
 		{
 			~LeafNode() override {}
 
-			std::vector<anny::index_t> indices;
+			IndexVector indices;
 		};
 		
 		struct SplitResult
 		{
 			T split;
-			std::vector<anny::index_t> left_indices;
-			std::vector<anny::index_t> right_indices;
+			IndexVector left_indices;
+			IndexVector right_indices;
 		};
 
-		SplitResult split(const std::vector<anny::index_t>& indices, size_t dim);
-		NodePtr build_kdtree(size_t dim, size_t leaf_size, const std::vector<anny::index_t>& indices);
-
+		SplitResult split(const IndexVector& indices, size_t dim);
+		NodePtr build_kdtree(size_t dim, size_t leaf_size, const IndexVector& indices, Node* parent);
+		std::vector<std::pair<index_t, T>> calc_distances(VecView<T> vec, const IndexVector& indices);
+		IndexVector brute_force_search(VecView<T> vec, size_t k, const IndexVector& indices);
 
 	private:
 		Matrix<T, MatrixStorageVV<T>> m_data;
@@ -66,7 +68,7 @@ namespace anny
 	};
 
 	template <typename T>
-	typename anny::KDTree<T>::SplitResult anny::KDTree<T>::split(const std::vector<anny::index_t>& indices, size_t dim)
+	typename anny::KDTree<T>::SplitResult anny::KDTree<T>::split(const IndexVector& indices, size_t dim)
 	{
 		if (indices.empty())
 			return SplitResult{};
@@ -97,7 +99,7 @@ namespace anny
 	}
 
 	template <typename T>
-	typename anny::KDTree<T>::NodePtr anny::KDTree<T>::build_kdtree(size_t dim, size_t leaf_size, const std::vector<anny::index_t>& indices)
+	typename anny::KDTree<T>::NodePtr anny::KDTree<T>::build_kdtree(size_t dim, size_t leaf_size, const IndexVector& indices, Node* parent)
 	{
 		if (indices.size() <= leaf_size)
 		{
@@ -105,6 +107,7 @@ namespace anny
 			node->split = 0;
 			node->left = nullptr;
 			node->right = nullptr;
+			node->parent = parent;
 			node->indices = indices;
 			return node;
 		}
@@ -113,8 +116,9 @@ namespace anny
 		anny::KDTree<T>::SplitResult split_res = split(indices, dim);
 		auto node = std::make_unique<anny::KDTree<T>::Node>();
 		node->split = split_res.split;
-		node->left = std::move(build_kdtree(dim + 1, leaf_size, split_res.left_indices));
-		node->right = std::move(build_kdtree(dim + 1, leaf_size, split_res.right_indices));
+		node->left = std::move(build_kdtree(dim + 1, leaf_size, split_res.left_indices, node.get()));
+		node->right = std::move(build_kdtree(dim + 1, leaf_size, split_res.right_indices, node.get()));
+		node->parent = parent;
 		return node;
 	}
 
@@ -125,19 +129,72 @@ namespace anny
 		Matrix<T, MatrixStorageVV<T>> m(storage);
 		m_data = std::move(m);
 		
-		std::vector<anny::index_t> all_indices(m_data.num_rows());
+		IndexVector all_indices(m_data.num_rows());
 		std::iota(all_indices.begin(), all_indices.end(), 0);
-		m_tree = build_kdtree(0, m_leaf_size, all_indices);
+		m_tree = build_kdtree(0, m_leaf_size, all_indices, nullptr);
 	}
 
 	template <typename T>
-	std::vector<index_t> KDTree<T>::knn_query(const std::vector<T>& vec, size_t k)
+	std::vector<std::pair<index_t, T>> KDTree<T>::calc_distances(VecView<T> vec, const IndexVector& indices)
 	{
-		throw std::runtime_error("Not implemented");
+		assert(m_data[0].is_same_size(vec));
+
+		std::vector<std::pair<index_t, T>> distances;
+
+		for (const auto& index: indices)
+		{
+			distances.push_back( { index, this->m_dist_func(m_data[index], vec) } );
+		}
+
+		std::stable_sort(distances.begin(), distances.end(), [](auto& left, auto& right) {
+			return left.second < right.second;
+			});
+
+		return distances;
+	}
+
+
+	template <typename T>
+	IndexVector KDTree<T>::brute_force_search(VecView<T> vec, size_t k, const IndexVector& indices)
+	{
+		throw std::runtime_error("Not implemented!");
 	}
 
 	template <typename T>
-	std::vector<index_t> KDTree<T>::radius_query(const std::vector<T>& vec, T radius)
+	IndexVector KDTree<T>::knn_query(const std::vector<T>& vec, size_t k)
+	{
+		IndexVector result;
+		if (k == 0)
+			return result;
+
+		const auto N = m_data.num_rows();
+		k = (k > N) ? N : k;
+
+		Vec<T> query(vec);
+
+		// find leaf
+		auto* node = m_tree.get();
+		size_t dim = 0;
+		while (node && !node->is_leaf())
+		{
+			dim %= m_data.num_cols();
+			if (vec[dim] < node->split)
+				node = node->left.get();
+			else
+				node = node->right.get();
+			++dim;
+		}
+
+		// brute force search in leaf
+		const auto& indices = static_cast<KDTree<T>::LeafNode*>(node)->indices;
+		auto distances = this->calc_distances(query.view(), indices);
+		std::transform(distances.begin(), distances.begin() + k, std::back_inserter(result), [](auto el) { return el.first; });
+
+		return result;
+	}
+
+	template <typename T>
+	IndexVector KDTree<T>::radius_query(const std::vector<T>& vec, T radius)
 	{
 		throw std::runtime_error("Not implemented");
 	}
