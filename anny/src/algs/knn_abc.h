@@ -6,6 +6,7 @@
 namespace anny
 {
 	using index_t = size_t;  // index of an element in vector, or index of an object in dataset (row in data matrix)...
+	using IndexVector = std::vector<index_t>;
 
 	template <typename T>
 	class IKnnAlgorithm
@@ -18,8 +19,8 @@ namespace anny
 		virtual ~IKnnAlgorithm() {}
 
 		virtual void fit(const std::vector<std::vector<T>>& data) = 0;
-		virtual std::vector<index_t> knn_query(const std::vector<T>& vec, size_t k) = 0;
-		virtual std::vector<index_t> radius_query(const std::vector<T>& vec, T radius) = 0;
+		virtual IndexVector knn_query(const std::vector<T>& vec, size_t k) = 0;
+		virtual IndexVector radius_query(const std::vector<T>& vec, T radius) = 0;
 	
 		const DistanceFunc<T> m_dist_func;
 	};

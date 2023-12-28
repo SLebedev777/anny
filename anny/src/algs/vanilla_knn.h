@@ -21,8 +21,8 @@ namespace anny
 		virtual ~VanillaKnn() {}
 
 		void fit(const std::vector<std::vector<T>>& data) override;
-		std::vector<index_t> knn_query(const std::vector<T>& vec, size_t k) override;
-		std::vector<index_t> radius_query(const std::vector<T>& vec, T radius) override;
+		IndexVector knn_query(const std::vector<T>& vec, size_t k) override;
+		IndexVector radius_query(const std::vector<T>& vec, T radius) override;
 	
 	private:
 		std::vector<std::pair<index_t, T>> calc_distances(VecView<T> vec);
@@ -41,9 +41,9 @@ namespace anny
 	}
 
 	template <typename T>
-	std::vector<index_t> VanillaKnn<T>::knn_query(const std::vector<T>& vec, size_t k)
+	IndexVector VanillaKnn<T>::knn_query(const std::vector<T>& vec, size_t k)
 	{
-		std::vector<index_t> result;
+		IndexVector result;
 		if (k == 0)
 			return result;
 
@@ -59,9 +59,9 @@ namespace anny
 	}
 
 	template <typename T>
-	std::vector<index_t> VanillaKnn<T>::radius_query(const std::vector<T>& vec, T radius)
+	IndexVector VanillaKnn<T>::radius_query(const std::vector<T>& vec, T radius)
 	{
-		std::vector<index_t> result;
+		IndexVector result;
 		const auto N = m_data.num_rows();
 		Vec<T> query(vec);
 
