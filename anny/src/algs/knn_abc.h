@@ -8,6 +8,9 @@ namespace anny
 	using index_t = size_t;  // index of an element in vector, or index of an object in dataset (row in data matrix)...
 	using IndexVector = std::vector<index_t>;
 
+	inline constexpr index_t UNDEFINED_INDEX = std::numeric_limits<size_t>::max();
+
+
 	template <typename T>
 	class IKnnAlgorithm
 	{

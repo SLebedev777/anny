@@ -34,10 +34,11 @@ namespace anny
 		{
 			virtual ~Node() {}
 
-			T split;
-			NodePtr left = nullptr;
-			NodePtr right = nullptr;
-			Node* parent = nullptr;
+			T split{};
+			anny::index_t split_index{ anny::UNDEFINED_INDEX };
+			NodePtr left{ nullptr };
+			NodePtr right{ nullptr };
+			Node* parent{ nullptr };
 
 			bool is_leaf() const { return left == nullptr && right == nullptr; }
 		};
@@ -51,9 +52,10 @@ namespace anny
 		
 		struct SplitResult
 		{
-			T split;
-			IndexVector left_indices;
-			IndexVector right_indices;
+			T split;                     // median value along current splitting dimension
+			IndexVector left_indices;    // indices of data points that lie to the left side of the splitting median value
+			IndexVector right_indices;   // indices of data points that lie to the right side of the splitting median value
+			anny::index_t split_index;   // index of splitting data point
 		};
 
 		SplitResult split(const IndexVector& indices, size_t dim);
@@ -86,6 +88,7 @@ namespace anny
 		auto split_value = dim_values[mid].second;
 		SplitResult res;
 		res.split = split_value;
+		res.split_index = dim_values[mid].first;
 		// TODO: optimize
 		for (const auto& [i, value] : dim_values)
 		{
@@ -104,10 +107,6 @@ namespace anny
 		if (indices.size() <= leaf_size)
 		{
 			auto node = std::make_unique<anny::KDTree<T>::LeafNode>();
-			node->split = 0;
-			node->left = nullptr;
-			node->right = nullptr;
-			node->parent = parent;
 			node->indices = indices;
 			return node;
 		}
@@ -116,6 +115,7 @@ namespace anny
 		anny::KDTree<T>::SplitResult split_res = split(indices, dim);
 		auto node = std::make_unique<anny::KDTree<T>::Node>();
 		node->split = split_res.split;
+		node->split_index = split_res.split_index;
 		node->left = std::move(build_kdtree(dim + 1, leaf_size, split_res.left_indices, node.get()));
 		node->right = std::move(build_kdtree(dim + 1, leaf_size, split_res.right_indices, node.get()));
 		node->parent = parent;
