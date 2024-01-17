@@ -8,6 +8,7 @@ list(APPEND SOURCES
 	"MatrixTests.cpp"
 	"DistanceTests.cpp"
 	"CsvLoaderTests.cpp"
+	"FixedSizePriorityQueueTests.cpp"
 	"VanillaKnnTests.cpp"
 	"KDTreeTests.cpp"
 )
