@@ -7,7 +7,7 @@
 
 namespace anny
 {
-constexpr double PI = 3.14159265358979323846;  // pi is a part of standard only in C++ 20...
+inline constexpr double PI = 3.14159265358979323846;  // pi is a part of standard only in C++ 20...
 
 template<typename T>
 static bool are_floats_equal(T f1, T f2) {
@@ -64,6 +64,10 @@ T cosine_distance(const VecView<T>& v1, const VecView<T>& v2)
 	constexpr T one{ 1 };
 	return one - cosine_similarity(v1, v2, false);
 }
+
+
+// TODO: add manhattan
+
 
 enum class DistanceId: size_t
 {

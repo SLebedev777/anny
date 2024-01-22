@@ -18,7 +18,7 @@ namespace anny
 			: IKnnAlgorithm<T>(dist_func)
 		{}
 
-		virtual ~VanillaKnn() {}
+		~VanillaKnn() override {}
 
 		void fit(const std::vector<std::vector<T>>& data) override;
 		IndexVector knn_query(const std::vector<T>& vec, size_t k) override;
