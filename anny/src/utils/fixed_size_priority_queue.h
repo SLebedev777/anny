@@ -2,13 +2,16 @@
 
 #include <queue>
 
+
 namespace anny
 {
 
-template <typename T>
+template <typename T, typename PriorityQueue = std::priority_queue<T>>
 class FixedSizePriorityQueue
 {
 public:
+    using value_type = T;
+
     FixedSizePriorityQueue() = delete;
 
     FixedSizePriorityQueue(size_t max_size)
@@ -38,20 +41,25 @@ public:
     bool empty() const { return m_pq.empty(); }
     size_t size() const { return m_pq.size(); }
     size_t max_size() const { return m_maxSize; }
+    void swap(FixedSizePriorityQueue& other) noexcept
+    {
+        std::swap(m_maxSize, other.m_maxSize);
+        m_pq.swap(other.m_pq);
+    }
 
 private:
-    const size_t m_maxSize;
-    std::priority_queue<T> m_pq;  // use only std::less comparer (we need MaxHeap)
+    size_t m_maxSize;
+    PriorityQueue m_pq;  // use only std::less comparer (we need MaxHeap)
 };
 
 
-template <typename T>
-std::vector<T> pq2vec(FixedSizePriorityQueue<T>&& pq)
+template <typename PriorityQueue>
+std::vector<typename PriorityQueue::value_type> pq2vec(PriorityQueue&& pq)
 {
     if (pq.empty())
         return {};
 
-    std::vector<T> result(pq.size());
+    std::vector<typename PriorityQueue::value_type> result(pq.size());
     size_t i = pq.size() - 1;
     while (!pq.empty())
     {
