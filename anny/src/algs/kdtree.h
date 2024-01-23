@@ -66,7 +66,7 @@ namespace anny
 		SplitResult split(const IndexVector& indices, size_t dim);
 		NodePtr build_kdtree(size_t dim, size_t leaf_size, const IndexVector& indices);
 		std::vector<std::pair<T, index_t>> calc_distances(VecView<T> vec, const IndexVector& indices);
-		void traverse_kdtree(KDTree<T>::Node* node, VecView<T> vec, size_t k, size_t dim,
+		void traverse_kdtree(KDTree<T>::Node* node, VecView<T> vec, size_t dim,
 			UniqueFixedSizePriorityQueue<std::pair<T, index_t>>& candidates);
 
 	private:
@@ -158,7 +158,7 @@ namespace anny
 
 
 	template <typename T>
-	void KDTree<T>::traverse_kdtree(KDTree<T>::Node* node, VecView<T> vec, size_t k, size_t dim,
+	void KDTree<T>::traverse_kdtree(KDTree<T>::Node* node, VecView<T> vec, size_t dim,
 		UniqueFixedSizePriorityQueue<std::pair<T, index_t>>& candidates)
 	{
 		if (!node)
@@ -192,13 +192,13 @@ namespace anny
 			auto distance_to_split_point = this->m_dist_func(m_data[node->split_index], vec);
 			candidates.push({ distance_to_split_point, node->split_index });
 
-			traverse_kdtree(good_branch, vec, k, dim + 1, candidates);
+			traverse_kdtree(good_branch, vec, dim + 1, candidates);
 
 			// shall we check the opposite branch for possible neighbors?
 			auto distance_to_border = abs(vec[dim] - node->split);  // attention here - consistency with L2-distance metric is needed!!!
 			auto worst_curr_distance = (!candidates.empty()) ? candidates.top().first : std::numeric_limits<T>::infinity();
 			if (distance_to_border < worst_curr_distance)
-				traverse_kdtree(opposite_branch, vec, k, dim + 1, candidates);
+				traverse_kdtree(opposite_branch, vec, dim + 1, candidates);
 
 		}
 	}
@@ -219,7 +219,7 @@ namespace anny
 		auto&& pq = anny::FixedSizePriorityQueue<std::pair<T, index_t>>{ k };
 		UniqueFixedSizePriorityQueue<std::pair<T, index_t>> candidates(std::move(pq));
 
-		traverse_kdtree(m_tree.get(), query.view(), k, 0, candidates);
+		traverse_kdtree(m_tree.get(), query.view(), 0, candidates);
 		auto candidates_vec = anny::pq2vec(std::move(candidates));
 		std::transform(candidates_vec.begin(), candidates_vec.end(), std::back_inserter(result), [](auto el) { return el.second; });
 
