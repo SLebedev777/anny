@@ -125,6 +125,61 @@ namespace anny
 		};
 
 
+		class RadiusQueryNodeVisitor : public NodeVisitor
+		{
+		public:
+			using PQ = UniquePriorityQueue<std::pair<T, index_t>>;
+
+			RadiusQueryNodeVisitor(KDTree<T>* tree, VecView<T> vec, T radius)
+				: m_candidates(std::priority_queue<std::pair<T, index_t>>{})
+				, m_tree(tree)
+				, m_vec(vec)
+				, m_radius(radius)
+			{
+				assert(m_radius > 0.0);
+			}
+
+			void visit(KDTree<T>::Node* node) override
+			{
+				if (!node)
+					return;
+
+				if (node->is_leaf())
+				{
+					const auto& indices = static_cast<KDTree<T>::LeafNode*>(node)->indices;
+					for (auto&& el : m_tree->calc_distances(m_vec, indices))
+					{
+						if (el.first <= m_radius)
+							m_candidates.push(el);
+					}
+				}
+				else
+				{
+					auto distance_to_split_point = m_tree->calc_distance(m_vec, node->split_index);
+					if (distance_to_split_point <= m_radius)
+						m_candidates.push({ distance_to_split_point, node->split_index });
+				}
+			}
+
+			T get_worst_distance() const override
+			{
+				return m_radius;
+			}
+
+			std::vector<std::pair<T, index_t>> get_result() const override
+			{
+				PQ tmp(m_candidates);
+				return anny::pq2vec(std::move(tmp));
+			}
+
+		private:
+			PQ m_candidates;
+			KDTree<T>* m_tree;
+			VecView<T> m_vec;
+			T m_radius;
+		};
+
+
 		SplitResult split(const IndexVector& indices, size_t dim);
 		NodePtr build_kdtree(size_t dim, size_t leaf_size, const IndexVector& indices);
 		T calc_distance(VecView<T> vec, index_t index);
@@ -295,7 +350,18 @@ namespace anny
 	template <typename T>
 	IndexVector KDTree<T>::radius_query(const std::vector<T>& vec, T radius)
 	{
-		throw std::runtime_error("Not implemented");
+		IndexVector result;
+
+		Vec<T> query(vec);
+
+		RadiusQueryNodeVisitor visitor(this, query.view(), radius);
+
+		traverse_kdtree(m_tree.get(), query.view(), 0, visitor);
+		auto candidates_vec = visitor.get_result();
+		std::transform(candidates_vec.begin(), candidates_vec.end(), std::back_inserter(result), [](auto el) { return el.second; });
+
+		return result;
+
 	}
 
 }

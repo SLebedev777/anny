@@ -5,7 +5,7 @@
 
 using namespace anny;
 
-TEST(KDTreeTests, KDTreeTest0)
+TEST(KDTreeTests, KDTreeTestKnnQuery)
 {
 	std::vector<std::vector<double>> data = {
 		{1.0, 0.0},
@@ -60,6 +60,62 @@ TEST(KDTreeTests, KDTreeTest0)
 	}
 
 }
+
+TEST(KDTreeTests, KDTreeTestRadiusQuery)
+{
+	std::vector<std::vector<double>> data = {
+		{1.0, 0.0},
+		{0.0, 1.0},
+		{-1.0, 0.0},
+		{0.0, -1.0}
+	};
+
+	KDTree<double> alg1(1);
+	alg1.fit(data);
+
+	{
+		std::vector<double> query = { 5.0, 0.0 };
+		auto result = alg1.radius_query(query, 1.0);
+		std::vector<index_t> expected{};
+		EXPECT_EQ(result, expected);
+	}
+	{
+		std::vector<double> query = { 5.0, 0.0 };
+		auto result = alg1.radius_query(query, 10.0);
+		std::vector<index_t> expected{ 0, 1, 3, 2};
+		EXPECT_EQ(result, expected);
+	}
+	{
+		std::vector<double> query = { -0.5, -1 };
+		auto result = alg1.radius_query(query, 1.0);
+		std::vector<index_t> expected{ 3 };
+		EXPECT_EQ(result, expected);
+	}
+	{
+		std::vector<double> query = { 0.5, 0 };
+		auto result = alg1.radius_query(query, 1.4);
+		std::vector<index_t> expected{ 0, 1, 3 };
+		EXPECT_EQ(result, expected);
+	}
+
+
+	KDTree<double> alg3(3);  // leaf_size = 3
+	alg3.fit(data);
+
+	{
+		std::vector<double> query = { 5.0, 0.0 };
+		auto result = alg1.radius_query(query, 1.0);
+		std::vector<index_t> expected{};
+		EXPECT_EQ(result, expected);
+	}
+	{
+		std::vector<double> query = { -0.5, -1 };
+		auto result = alg1.radius_query(query, 1.0);
+		std::vector<index_t> expected{ 3 };
+		EXPECT_EQ(result, expected);
+	}
+}
+
 
 TEST(KDTreeTests, KDTreeTestIris)
 {
