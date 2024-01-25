@@ -63,17 +63,80 @@ namespace anny
 			anny::index_t split_index;   // index of splitting data point
 		};
 
+		friend class NodeVisitor;
+
+		class NodeVisitor
+		{
+		public:
+			virtual void visit(KDTree<T>::Node* node) = 0;
+			virtual T get_worst_distance() const = 0;
+			virtual std::vector<std::pair<T, index_t>> get_result() const = 0;
+		};
+
+		class KnnQueryNodeVisitor: public NodeVisitor
+		{
+		public:
+			using PQ = UniqueFixedSizePriorityQueue<std::pair<T, index_t>>;
+
+			KnnQueryNodeVisitor(KDTree<T>* tree, VecView<T> vec, size_t k)
+				: m_candidates(anny::FixedSizePriorityQueue<std::pair<T, index_t>>{ k })
+				, m_tree(tree)
+				, m_vec(vec)
+				, m_k(k)
+			{
+			}
+
+			void visit(KDTree<T>::Node* node) override
+			{
+				if (!node)
+					return;
+
+				if (node->is_leaf())
+				{
+					const auto& indices = static_cast<KDTree<T>::LeafNode*>(node)->indices;
+					for (auto&& el : m_tree->calc_distances(m_vec, indices))
+					{
+						m_candidates.push(el);
+					}
+				}
+				else
+				{
+					auto distance_to_split_point = m_tree->calc_distance(m_vec, node->split_index);
+					m_candidates.push({ distance_to_split_point, node->split_index });
+				}
+			}
+
+			T get_worst_distance() const override
+			{
+				return (!m_candidates.empty()) ? m_candidates.top().first : std::numeric_limits<T>::infinity();
+			}
+
+			std::vector<std::pair<T, index_t>> get_result() const override
+			{
+				PQ tmp(m_candidates);
+				return anny::pq2vec(std::move(tmp));
+			}
+
+		private:
+			PQ m_candidates;
+			KDTree<T>* m_tree;
+			VecView<T> m_vec;
+			size_t m_k;
+		};
+
+
 		SplitResult split(const IndexVector& indices, size_t dim);
 		NodePtr build_kdtree(size_t dim, size_t leaf_size, const IndexVector& indices);
+		T calc_distance(VecView<T> vec, index_t index);
 		std::vector<std::pair<T, index_t>> calc_distances(VecView<T> vec, const IndexVector& indices);
-		void traverse_kdtree(KDTree<T>::Node* node, VecView<T> vec, size_t dim,
-			UniqueFixedSizePriorityQueue<std::pair<T, index_t>>& candidates);
+		void traverse_kdtree(KDTree<T>::Node* node, VecView<T> vec, size_t dim,	NodeVisitor& visitor);
 
 	private:
 		Matrix<T, MatrixStorageVV<T>> m_data;
 		NodePtr m_tree;
 		size_t m_leaf_size;
 	};
+
 
 	template <typename T>
 	typename anny::KDTree<T>::SplitResult anny::KDTree<T>::split(const IndexVector& indices, size_t dim)
@@ -127,6 +190,7 @@ namespace anny
 		return node;
 	}
 
+
 	template <typename T>
 	void KDTree<T>::fit(const std::vector<std::vector<T>>& data)
 	{
@@ -138,6 +202,14 @@ namespace anny
 		std::iota(all_indices.begin(), all_indices.end(), 0);
 		m_tree = build_kdtree(0, m_leaf_size, all_indices);
 	}
+
+
+	template <typename T>
+	T KDTree<T>::calc_distance(VecView<T> vec, index_t index)
+	{
+		return this->m_dist_func(m_data[index], vec);
+	}
+
 
 	template <typename T>
 	std::vector<std::pair<T, index_t>> KDTree<T>::calc_distances(VecView<T> vec, const IndexVector& indices)
@@ -158,19 +230,14 @@ namespace anny
 
 
 	template <typename T>
-	void KDTree<T>::traverse_kdtree(KDTree<T>::Node* node, VecView<T> vec, size_t dim,
-		UniqueFixedSizePriorityQueue<std::pair<T, index_t>>& candidates)
+	void KDTree<T>::traverse_kdtree(KDTree<T>::Node* node, VecView<T> vec, size_t dim, NodeVisitor& visitor)
 	{
 		if (!node)
 			return;
 
 		if (node->is_leaf())
 		{
-			const auto& indices = static_cast<KDTree<T>::LeafNode*>(node)->indices;
-			for (auto&& el : this->calc_distances(vec, indices))
-			{
-				candidates.push(el);
-			}
+			visitor.visit(node);
 			return;
 		}
 		else
@@ -189,17 +256,17 @@ namespace anny
 				opposite_branch = node->left.get();
 			}
 
-			auto distance_to_split_point = this->m_dist_func(m_data[node->split_index], vec);
-			candidates.push({ distance_to_split_point, node->split_index });
+			visitor.visit(node);
 
-			traverse_kdtree(good_branch, vec, dim + 1, candidates);
+			traverse_kdtree(good_branch, vec, dim + 1, visitor);
 
 			// shall we check the opposite branch for possible neighbors?
 			auto distance_to_border = abs(vec[dim] - node->split);  // attention here - consistency with L2-distance metric is needed!!!
-			auto worst_curr_distance = (!candidates.empty()) ? candidates.top().first : std::numeric_limits<T>::infinity();
+			auto worst_curr_distance = visitor.get_worst_distance();
 			if (distance_to_border < worst_curr_distance)
-				traverse_kdtree(opposite_branch, vec, dim + 1, candidates);
-
+			{
+				traverse_kdtree(opposite_branch, vec, dim + 1, visitor);
+			}
 		}
 	}
 
@@ -216,11 +283,10 @@ namespace anny
 
 		Vec<T> query(vec);
 		
-		auto&& pq = anny::FixedSizePriorityQueue<std::pair<T, index_t>>{ k };
-		UniqueFixedSizePriorityQueue<std::pair<T, index_t>> candidates(std::move(pq));
+		KnnQueryNodeVisitor visitor(this, query.view(), k);
 
-		traverse_kdtree(m_tree.get(), query.view(), 0, candidates);
-		auto candidates_vec = anny::pq2vec(std::move(candidates));
+		traverse_kdtree(m_tree.get(), query.view(), 0, visitor);
+		auto candidates_vec = visitor.get_result();
 		std::transform(candidates_vec.begin(), candidates_vec.end(), std::back_inserter(result), [](auto el) { return el.second; });
 
 		return result;
