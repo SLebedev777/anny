@@ -29,9 +29,12 @@ public:
     friend
     class VecView;
 
+    using value_type = std::remove_cv_t<T>;  // to be able to create std::vector<T> from VecView<const T>
+
+
     Vec() = default;
 
-    Vec(size_t size, const T v = T{})
+    explicit Vec(size_t size, T v = T{})
     : m_data(size, v)
     {}
 
@@ -43,8 +46,12 @@ public:
     : m_data(data)
     {}
 
-    Vec(const VecView<T>& vv)
+    explicit Vec(VecView<T> vv)
     : m_data(vv.begin(), vv.end())
+    {}
+
+    explicit Vec(const VecView<const T>& vv)
+        : m_data(vv.begin(), vv.end())
     {}
 
     Vec(const Vec& other)
@@ -69,28 +76,29 @@ public:
 
     size_t size() const noexcept { return m_data.size(); }
     bool is_same_size(const Vec& other) const noexcept  { return size() == other.size(); }
+    bool is_same_size(VecView<T> other) const noexcept { return size() == other.size(); }
 
-    T& operator[](size_t index) { return m_data[index]; }
-    const T& operator[](size_t index) const { return m_data[index]; }
+    value_type& operator[](size_t index) { return m_data[index]; }
+    const value_type& operator[](size_t index) const { return m_data[index]; }
 
-    VecView<T> view() { return VecView<T>(*this); }
-    VecView<const T> view() const { return VecView<const T>(*this); }
-    VecView<T> view(size_t start, size_t size = END)
+    VecView<value_type> view() { return VecView<value_type>(*this); }
+    VecView<const value_type> view() const { return VecView<const value_type>(m_data.begin(), m_data.end()); }
+    VecView<value_type> view(size_t start, size_t size = END)
     {
         auto iter_start = m_data.begin() + start;
         auto iter_end = (size != END) ? (iter_start + size) : m_data.end();
-        return VecView<T>(iter_start, iter_end);
+        return VecView<value_type>(iter_start, iter_end);
     }
 
     // math
 
-    Vec& operator+=(const T& k)
+    Vec& operator+=(T k)
     {
         std::for_each(m_data.begin(), m_data.end(), [&k](auto& el) { el += k; });
         return *this;
     }
 
-    Vec& operator-=(const T& k)
+    Vec& operator-=(T k)
     {
         std::for_each(m_data.begin(), m_data.end(), [&k](auto& el) { el -= k; });
         return *this;
@@ -110,8 +118,22 @@ public:
         return *this;
     }
 
+    Vec& operator+=(VecView<T> other)
+    {
+        assert(is_same_size(other));
+        std::transform(m_data.begin(), m_data.end(), other.begin(), m_data.begin(), std::plus<T>());
+        return *this;
+    }
+
+    Vec& operator-=(VecView<T> other)
+    {
+        assert(is_same_size(other));
+        std::transform(m_data.begin(), m_data.end(), other.begin(), m_data.begin(), std::minus<T>());
+        return *this;
+    }
+
     template <typename Const>
-    Vec& operator*=(const Const& k)
+    Vec& operator*=(Const k)
     {
         for (size_t i = 0; i < size(); ++i)
             m_data[i] *= k;
@@ -119,14 +141,14 @@ public:
     }
 
     template <typename Const>
-    Vec& operator/=(const Const& k)
+    Vec& operator/=(Const k)
     {
         for (size_t i = 0; i < size(); ++i)
             m_data[i] /= k;
         return *this;
     }
 
-    double dot(const Vec& other)
+    T dot(const Vec& other) const
     {
         assert(is_same_size(other));
         return std::inner_product(m_data.begin(), m_data.end(), other.m_data.begin(), T{0});
@@ -137,7 +159,7 @@ public:
     DT dot(const Vec<DT>& left, const Vec<DT>& right);
 
 private:
-    std::vector<T> m_data;
+    std::vector<Vec::value_type> m_data;
 };
 
 
@@ -158,7 +180,7 @@ Vec<T> operator-(const Vec<T>& left, const Vec<T>& right)
 }
 
 template <typename T, typename Const>
-Vec<T> operator*(const Vec<T>& v, const Const& k)
+Vec<T> operator*(const Vec<T>& v, Const k)
 {
     Vec<T> result{v};
     result *= k;
@@ -166,13 +188,13 @@ Vec<T> operator*(const Vec<T>& v, const Const& k)
 }
 
 template <typename T, typename Const>
-Vec<T> operator*(const Const& k, const Vec<T>& v)
+Vec<T> operator*(Const k, const Vec<T>& v)
 {
     return v * k;
 }
 
 template <typename T, typename Const>
-Vec<T> operator/(const Vec<T>& v, const Const& k)
+Vec<T> operator/(const Vec<T>& v, Const k)
 {
     Vec<T> result{v};
     result /= k;

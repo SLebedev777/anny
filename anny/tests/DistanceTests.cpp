@@ -51,7 +51,7 @@ TEST(DistanceTests, DistanceFactoryTest)
         Vec<float> v2 = { 4.0f, 5.0f, 6.0f };
 
         auto distance_func = distance_func_factory<float>(anny::DistanceId::L2);
-        EXPECT_TRUE(are_floats_equal((float)sqrt(27.0f), distance_func(v1, v2)));
+        EXPECT_TRUE(are_floats_equal((float)sqrt(27.0f), distance_func(v1.view(), v2.view())));
 
     }
 }

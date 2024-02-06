@@ -113,5 +113,28 @@ TEST(VecViewTests, VecViewCalcTest0)
 
 }
 
-TEST(VecViewTests, VecViewConstnessTest0)
-{}
+TEST(VecViewTests, VecConstnessTest0)
+{
+    {
+        const Vec<int> cv1{ 1, 2, 3 };
+        Vec<int> v2{ 4, 5, 6 };
+
+        EXPECT_EQ(cv1.size(), 3);
+        EXPECT_EQ(cv1[1], 2);
+        EXPECT_TRUE(cv1.is_same_size(v2));
+        EXPECT_EQ(v2[0] - cv1[0], v2[1] - cv1[1]);
+    }
+
+    {
+        const Vec<int> cv1{ 1, 2, 3 };
+        Vec<int> v2{ 4, 5, 6 };
+
+        auto cv1_view = cv1.view(); // VecView<const int>
+        auto v2_view = v2.view();   // VecView<int>
+
+        Vec<int> v1(cv1_view);   // construct non-const Vec<T> from VecView<const T>
+        Vec<int> expected{ 1, 2, 3 };
+        EXPECT_EQ(v1, expected);
+    }
+
+}

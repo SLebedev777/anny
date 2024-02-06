@@ -62,8 +62,8 @@ public:
     }
 
 
-    VecView<DType> operator[](size_t row)  { return m_data[row]; }
-    VecView<const DType> operator[](size_t row) const { return m_data[row]; }
+    VecView<DType> operator[](size_t row)  { return m_data[row].view(); }
+    VecView<const DType> operator[](size_t row) const { return m_data[row].view(); }
 
     DType& operator()(size_t row, size_t col)  { return m_data[row][col]; }
     const DType& operator()(size_t row, size_t col) const  { return m_data[row][col]; }
@@ -218,7 +218,7 @@ public:
     Shape shape() const { return m_storage.shape(); }
 
     VecView<T> operator[](size_t row) { return m_storage[row]; }
-    const VecView<T> operator[](size_t row) const { return m_storage[row]; }
+    VecView<const T> operator[](size_t row) const { return m_storage[row]; }
 
     T& operator()(size_t row, size_t col) { return m_storage(row, col); }
     const T& operator()(size_t row, size_t col) const { return m_storage(row, col); }
@@ -230,7 +230,7 @@ public:
 
     // operations with a number
 
-    Matrix& operator+=(const T& k)
+    Matrix& operator+=(T k)
     {
         for (size_t i = 0; i < num_rows(); ++i)
         {
@@ -240,7 +240,7 @@ public:
         return *this;
     }
 
-    Matrix& operator-=(const T& k)
+    Matrix& operator-=(T k)
     {
         for (size_t i = 0; i < num_rows(); ++i)
         {
@@ -250,7 +250,7 @@ public:
         return *this;
     }
 
-    Matrix& operator*=(const T& k)
+    Matrix& operator*=(T k)
     {
         for (size_t i = 0; i < num_rows(); ++i)
         {
@@ -260,7 +260,7 @@ public:
         return *this;
     }
 
-    Matrix& operator/=(const T& k)
+    Matrix& operator/=(T k)
     {
         for (size_t i = 0; i < num_rows(); ++i)
         {
@@ -272,7 +272,7 @@ public:
 
     // operations with a vector
 
-    Matrix& operator+=(const VecView<T>& vec)
+    Matrix& operator+=(VecView<T> vec)
     {
         assert(vec.size() == num_cols());
 
@@ -284,7 +284,7 @@ public:
         return *this;
     }
 
-    Matrix& operator-=(const VecView<T>& vec)
+    Matrix& operator-=(VecView<T> vec)
     {
         assert(vec.size() == num_cols());
 
@@ -296,7 +296,18 @@ public:
         return *this;
     }
 
-    Vec<T> dot(const VecView<T>& v)
+    Vec<T> dot(VecView<T> v)
+    {
+        Vec<T> result(num_rows());
+        for (size_t i = 0; i < num_rows(); ++i)
+        {
+            auto row_view = m_storage[i];
+            result[i] = anny::dot(row_view, v);
+        }
+        return result;
+    }
+
+    Vec<T> dot(VecView<const T> v) const
     {
         Vec<T> result(num_rows());
         for (size_t i = 0; i < num_rows(); ++i)

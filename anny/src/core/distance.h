@@ -15,40 +15,46 @@ static bool are_floats_equal(T f1, T f2) {
 }
 
 template <typename T>
-T l2_norm_squared(const VecView<T>& vec)
+T l2_norm_squared(VecView<T> vec)
 {
 	return vec.dot(vec);
 }
 
 template <typename T>
-T l2_norm(const VecView<T>& vec)
+T l2_norm(VecView<T> vec)
 {
 	static_assert(!std::is_integral_v<T>, "It's impossible to calculate L2 norm for vector of integers!");
 	return sqrt(vec.dot(vec));
 }
 
 template <typename T>
-Vec<T> l2_normalize(const VecView<T>& vec)
+Vec<T> l2_normalize(VecView<T> vec)
 {
 	return vec / l2_norm(vec);
 }
 
 template <typename T>
-T l2_distance_squared(const VecView<T>& v1, const VecView<T>& v2)
+T l2_distance_squared(VecView<T> v1, VecView<T> v2)
 {
 	auto sub = v1 - v2;
 	return l2_norm_squared(sub.view());
 }
 
 template <typename T>
-T l2_distance(const VecView<T>& v1, const VecView<T>& v2)
+T l2_distance(VecView<T> v1, VecView<T> v2)
 {
 	auto sub = v1 - v2;
 	return l2_norm(sub.view());
 }
 
 template <typename T>
-T cosine_similarity(const VecView<T>& v1, const VecView<T>& v2, bool need_normalize=false)
+bool is_l2_normalized(VecView<T> v)
+{
+	return are_floats_equal(T{ 1.0 }, l2_norm_squared(v));
+}
+
+template <typename T>
+T cosine_similarity(VecView<T> v1, VecView<T> v2, bool need_normalize=false)
 {
 	auto sim = dot(v1, v2);
 	if (need_normalize)
@@ -59,7 +65,7 @@ T cosine_similarity(const VecView<T>& v1, const VecView<T>& v2, bool need_normal
 }
 
 template <typename T>
-T cosine_distance(const VecView<T>& v1, const VecView<T>& v2)
+T cosine_distance(VecView<T> v1, VecView<T> v2)
 {
 	constexpr T one{ 1 };
 	return one - cosine_similarity(v1, v2, false);
@@ -78,7 +84,7 @@ enum class DistanceId: size_t
 };
 
 template <typename T>
-using DistanceFunc = std::function<T(const VecView<T>& v1, const VecView<T>& v2)>;
+using DistanceFunc = std::function<T(VecView<T> v1, VecView<T> v2)>;
 
 template <typename T>
 DistanceFunc<T> distance_func_factory(DistanceId dist_id)

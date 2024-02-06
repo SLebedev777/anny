@@ -120,12 +120,12 @@ TEST(MatrixTests, MatrixCalcTest0)
         Vec<int> v = { 3, 2, 1 };
         Vec<int> expected_dot = {10, 28};
 
-        auto result = m.dot(v);
+        auto result = m.dot(v.view());
 
         EXPECT_EQ(result, expected_dot);
 
         Vec<int> v_wrong_size = { 1, 2, 3, 4 };
-        EXPECT_DEATH(m.dot(v_wrong_size), "Assertion");
+        EXPECT_DEATH(m.dot(v_wrong_size.view()), "Assertion");
     }
 
 }
