@@ -11,6 +11,8 @@ inline constexpr double PI = 3.14159265358979323846;  // pi is a part of standar
 
 template<typename T>
 static bool are_floats_equal(T f1, T f2) {
+	if (f1 == 0 || f2 == 0)
+		return std::fabs(f1 - f2) <= std::numeric_limits<T>::epsilon();
 	return (std::fabs(f1 - f2) <= std::numeric_limits<T>::epsilon() * std::fmax(std::fabs(f1), std::fabs(f2)));
 }
 
