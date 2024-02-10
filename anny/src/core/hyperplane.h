@@ -8,7 +8,13 @@
 
 namespace anny
 {
-
+	/*
+	* N-dimensional hyperplane is described by a N-dimensional normal vector with L2 norm = 1, and real-valued intercept.
+	* Hyperplane equation is:
+	*     dot(normal, v) + intercept = 0,
+	* if N-dimensional vector v belongs to the plane.
+	*/
+	
 	template <typename T>
 	struct Hyperplane
 	{
@@ -23,7 +29,7 @@ namespace anny
 
 		Hyperplane(const Vec<T>& _normal, const Vec<T>& x0)
 			: normal{ _normal }
-			, intercept{ -anny::dot(_normal.view(), x0) }
+			, intercept{ -anny::dot(_normal, x0) }
 		{}
 		
 		T distance(VecView<T> v)

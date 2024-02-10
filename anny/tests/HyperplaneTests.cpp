@@ -76,3 +76,47 @@ TEST(HyperplaneTests, HyperplaneSideTest)
     }
 
 }
+
+TEST(HyperplaneTests, HyperplaneThroughGivenPointTest)
+{
+    {
+        const double c = 1.0;
+        Vec<double> n{ -c, c };  // 45 degrees diagonal 2d line
+        n = l2_normalize(n.view());
+        Vec<double> x0{ 2.5, 4.5 };
+
+        Hyperplane<double> h(n, x0);
+
+        Vec<double> point1{ 0.0, 2.0 };
+        Vec<double> point3{ 1.0, 6.0 }; // 2 points equidistant from plane
+        Vec<double> point4{ 4.0, 3.0 };
+
+        auto d1 = h.distance(point1.view());
+
+        EXPECT_TRUE(anny::are_floats_equal(h.intercept, -sqrt(2.0)));
+        EXPECT_TRUE(anny::are_floats_equal(d1, 0.0));
+        std::cout << d1 << std::endl;
+        std::cout << "[" << h.normal[0] << ", " << h.normal[1] << std::endl;
+    }
+
+    {
+        const float c = 1.0f;
+        Vec<float> n{ -c, c };  // 45 degrees diagonal 2d line
+        n = l2_normalize(n.view());
+        Vec<float> x0{ 2.5f, 4.5f };
+
+        Hyperplane<float> h(n, x0);
+
+        Vec<float> point1{ 0.0f, 2.0f };
+        Vec<float> point3{ 1.0f, 6.0f }; // 2 points equidistant from plane
+        Vec<float> point4{ 4.0f, 3.0f };
+
+        auto d1 = h.distance(point1.view());
+
+        EXPECT_TRUE(anny::are_floats_equal(h.intercept, -sqrt(2.0f)));
+        EXPECT_TRUE(anny::are_floats_equal(d1, 0.0f));
+        std::cout << d1 << std::endl;
+        std::cout << "[" << h.normal[0] << ", " << h.normal[1] << std::endl;
+    }
+
+}
