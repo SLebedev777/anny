@@ -31,25 +31,35 @@ namespace anny
 			: normal{ _normal }
 			, intercept{ -anny::dot(_normal, x0) }
 		{}
-		
+
+		T margin(VecView<T> v)
+		{
+			return anny::dot(normal.view(), v) + intercept;
+		}
+
+		T margin(VecView<const T> v) const
+		{
+			return anny::dot(normal.view(), v) + intercept;
+		}
+
 		T distance(VecView<T> v)
 		{
-			return std::fabs(anny::dot(normal.view(), v) + intercept);
+			return std::fabs(margin(v));
 		}
 		
 		T distance(VecView<const T> v) const
 		{
-			return std::fabs(anny::dot(normal.view(), v) + intercept);
+			return std::fabs(margin(v));
 		}
 		
 		bool side(VecView<T> v)
 		{
-			return (anny::dot(normal.view(), v) + intercept) >= 0.0;
+			return margin(v) >= 0.0;
 		}
 
 		bool side(VecView<const T> v) const
 		{
-			return (anny::dot(normal.view(), v) + intercept) >= 0.0;
+			return margin(v) >= 0.0;
 		}
 
 		size_t size() const
