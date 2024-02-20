@@ -68,7 +68,7 @@ public:
         return *this;
     }
 
-    Vec& operator=(Vec&& other)
+    Vec& operator=(Vec&& other) noexcept
     {
         m_data = std::move(other.m_data);
         return *this;
