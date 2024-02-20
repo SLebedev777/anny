@@ -12,6 +12,7 @@ list(APPEND SOURCES
 	"FixedSizePriorityQueueTests.cpp"
 	"VanillaKnnTests.cpp"
 	"KDTreeTests.cpp"
+	"AnnoyTests.cpp"
 )
 
 include(FetchContent)
