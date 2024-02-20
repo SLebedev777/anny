@@ -42,19 +42,19 @@ TEST(KDTreeTests, KDTreeTestKnnQuery)
 
 	{
 		std::vector<double> query = { 5.0, 0.0 };
-		auto result = alg1.knn_query(query, 3);
+		auto result = alg3.knn_query(query, 3);
 		std::vector<index_t> expected{ 0, 1, 3 };
 		EXPECT_EQ(result, expected);
 	}
 	{
 		std::vector<double> query = { -0.5, -1 };
-		auto result = alg1.knn_query(query, 4);
+		auto result = alg3.knn_query(query, 4);
 		std::vector<index_t> expected{ 3, 2, 0, 1 };
 		EXPECT_EQ(result, expected);
 	}
 	{
 		std::vector<double> query = { 0.5, 0 };
-		auto result = alg1.knn_query(query, 1);
+		auto result = alg3.knn_query(query, 1);
 		std::vector<index_t> expected{ 0 };
 		EXPECT_EQ(result, expected);
 	}
