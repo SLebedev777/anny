@@ -8,6 +8,8 @@
 
 namespace anny
 {
+namespace utils
+{
 
 enum class BadLinesPolicy
 {
@@ -78,7 +80,7 @@ std::vector<std::vector<T>> load_csv(const std::string& filename, const CSVLoadi
 		try
 		{
 			std::vector<T> row;
-			anny::detail::split(line.begin(), line.end(), std::back_inserter(row), settings.delimiter, 
+			anny::utils::detail::split(line.begin(), line.end(), std::back_inserter(row), settings.delimiter, 
 				[](auto first, auto last) {
 					std::string token(first, last);
 					return static_cast<T>(std::stold(token));
@@ -120,4 +122,5 @@ std::vector<std::vector<T>> load_csv(const std::string& filename, const CSVLoadi
 	return data;
 }
 
+}
 }

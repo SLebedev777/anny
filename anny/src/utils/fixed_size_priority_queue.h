@@ -5,6 +5,8 @@
 
 namespace anny
 {
+namespace utils
+{
 
 template <typename T, typename PriorityQueue = std::priority_queue<T>>
 class FixedSizePriorityQueue
@@ -70,4 +72,5 @@ std::vector<typename PriorityQueue::value_type> pq2vec(PriorityQueue&& pq)
     return result;
 }
 
+}
 }

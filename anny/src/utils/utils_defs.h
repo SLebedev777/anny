@@ -6,8 +6,10 @@
 
 namespace anny
 {
+namespace utils
+{
 	template <typename T>
-	using UniqueFixedSizePriorityQueue = anny::UniquePriorityQueue<T, anny::FixedSizePriorityQueue<T>>;
+	using UniqueFixedSizePriorityQueue = anny::utils::UniquePriorityQueue<T, anny::utils::FixedSizePriorityQueue<T>>;
 }
-
+}
 #endif  // _ANNY_UTILS_DEFS_

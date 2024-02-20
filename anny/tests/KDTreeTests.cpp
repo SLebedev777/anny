@@ -119,8 +119,9 @@ TEST(KDTreeTests, KDTreeTestRadiusQuery)
 
 TEST(KDTreeTests, KDTreeTestIris)
 {
-	anny::CSVLoadingSettings settings(',');
-	auto data = anny::load_csv<double>("datasets/iris.data.csv", settings);
+	using namespace anny::utils;
+	CSVLoadingSettings settings(',');
+	auto data = load_csv<double>("datasets/iris.data.csv", settings);
 
 	KDTree<double> alg(15);
 	alg.fit(data);

@@ -113,7 +113,7 @@ TEST(HyperplaneTests, HyperplaneThroughGivenPointTest)
 
         auto d1 = h.distance(point1.view());
 
-        EXPECT_TRUE(anny::are_floats_equal(h.intercept, -sqrt(2.0f)));
+        EXPECT_TRUE(anny::are_floats_equal(h.intercept, -sqrtf(2.0f)));
         EXPECT_TRUE(anny::are_floats_equal(d1, 0.0f));
         std::cout << d1 << std::endl;
         std::cout << "[" << h.normal[0] << ", " << h.normal[1] << std::endl;

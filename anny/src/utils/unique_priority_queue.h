@@ -6,6 +6,8 @@
 
 namespace anny
 {
+namespace utils
+{
 
 /* Priority queue that contains only unique elements.
 */
@@ -53,4 +55,5 @@ private:
     std::set<T> m_unique;
 };
 
+}
 }

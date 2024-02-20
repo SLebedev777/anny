@@ -72,10 +72,10 @@ namespace anny
 		class KnnQueryNodeVisitor: public NodeVisitor
 		{
 		public:
-			using PQ = UniqueFixedSizePriorityQueue<std::pair<T, index_t>>;
+			using PQ = anny::utils::UniqueFixedSizePriorityQueue<std::pair<T, index_t>>;
 
 			KnnQueryNodeVisitor(KDTree<T>* tree, VecView<T> vec, size_t k)
-				: m_candidates(anny::FixedSizePriorityQueue<std::pair<T, index_t>>{ k })
+				: m_candidates(anny::utils::FixedSizePriorityQueue<std::pair<T, index_t>>{ k })
 				, m_tree(tree)
 				, m_vec(vec)
 				, m_k(k)
@@ -110,7 +110,7 @@ namespace anny
 			std::vector<std::pair<T, index_t>> get_result() const override
 			{
 				PQ tmp(m_candidates);
-				return anny::pq2vec(std::move(tmp));
+				return anny::utils::pq2vec(std::move(tmp));
 			}
 
 		private:
@@ -124,7 +124,7 @@ namespace anny
 		class RadiusQueryNodeVisitor : public NodeVisitor
 		{
 		public:
-			using PQ = UniquePriorityQueue<std::pair<T, index_t>>;
+			using PQ = anny::utils::UniquePriorityQueue<std::pair<T, index_t>>;
 
 			RadiusQueryNodeVisitor(KDTree<T>* tree, VecView<T> vec, T radius)
 				: m_candidates(std::priority_queue<std::pair<T, index_t>>{})
@@ -165,7 +165,7 @@ namespace anny
 			std::vector<std::pair<T, index_t>> get_result() const override
 			{
 				PQ tmp(m_candidates);
-				return anny::pq2vec(std::move(tmp));
+				return anny::utils::pq2vec(std::move(tmp));
 			}
 
 		private:

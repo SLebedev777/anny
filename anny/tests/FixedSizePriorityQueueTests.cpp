@@ -2,9 +2,10 @@
 #include <gtest/gtest.h>
 #include "utils/fixed_size_priority_queue.h"
 #include "utils/unique_priority_queue.h"
+#include "utils/utils_defs.h"
 
 
-using namespace anny;
+using namespace anny::utils;
 
 
 TEST(FixedSizePriorityQueueTests, Test0)
@@ -70,17 +71,10 @@ TEST(UniquePriorityQueueTests, SwapTest)
 }
 
 
-namespace
-{
-    template <typename T>
-    using FixedSizeUniquePriorityQueue = anny::UniquePriorityQueue<T, anny::FixedSizePriorityQueue<T>>;
-
-}
-
 TEST(FixedSizeUniquePriorityQueueTests, Test0)
 {
     using item_type = std::pair<double, int>;
-    FixedSizeUniquePriorityQueue<item_type> pq(std::move(anny::FixedSizePriorityQueue<item_type>{ 3 }));
+    UniqueFixedSizePriorityQueue<item_type> pq(std::move(FixedSizePriorityQueue<item_type>{ 3 }));
     pq.push({ 3.0, 1 });
     pq.push({ 2.0, 2 });
     item_type item1{ 3.0, 1 };
