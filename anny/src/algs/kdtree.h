@@ -7,15 +7,11 @@
 #include "../core/vec_view.h"
 #include "../core/matrix.h"
 #include "../core/distance.h"
-#include "../utils/fixed_size_priority_queue.h"
-#include "../utils/unique_priority_queue.h"
+#include "../utils/utils_defs.h"
 
 
 namespace anny
 {
-	template <typename T>
-	using UniqueFixedSizePriorityQueue = anny::UniquePriorityQueue<T, anny::FixedSizePriorityQueue<T>>;
-
 
 	template <typename T>
 	class KDTree: public IKnnAlgorithm<T>
