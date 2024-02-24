@@ -119,7 +119,7 @@ namespace anny
 			size_t m_k;
 		};
 
-		SplitResult split(const IndexVector& indices);
+		bool split(const IndexVector& indices, SplitResult& result);
 		NodePtr build_annoy_tree(const IndexVector& indices);
 		T calc_distance(VecView<T> vec, index_t index);
 		std::vector<std::pair<T, index_t>> calc_distances(VecView<T> vec, const IndexVector& indices);
@@ -135,18 +135,29 @@ namespace anny
 
 
 	template <typename T>
-	typename Annoy<T>::SplitResult Annoy<T>::split(const IndexVector& indices)
+	bool Annoy<T>::split(const IndexVector& indices, typename Annoy<T>::SplitResult& res)
 	{
-		if (indices.empty())
-			return SplitResult{};
+		if (indices.size() < 2)
+			return false;
 
-		// select 2 points
-		std::uniform_int_distribution<size_t> dis(0, indices.size() - 1);
-		size_t i1 = dis(m_gen);
-		size_t i2{ i1 };
-		while (i2 == i1)
+		if (indices.size() == 2 && (m_data[indices[0]] == m_data[indices[1]]))
 		{
-			i2 = dis(m_gen);
+			return false;
+		}
+
+		size_t i1{0}, i2{1}; // for case indices.size() == 2
+		if (indices.size() > 2)
+		{
+			// randomly select 2 different points
+			std::uniform_int_distribution<size_t> dis(0, indices.size() - 1);
+			i1 = dis(m_gen);
+			for (i2 = 0; i2 < indices.size(); i2++)
+			{
+				if (m_data[indices[i1]] != m_data[indices[i2]])
+					break;
+			}
+			if (i2 == indices.size())  // all given data points are equal, can't split
+				return false;
 		}
 		const auto& v1 = m_data[indices[i1]];
 		const auto& v2 = m_data[indices[i2]];
@@ -157,7 +168,6 @@ namespace anny
 		normal = l2_normalize(normal.view());
 		Hyperplane<T> border{ normal, midpoint };
 
-		SplitResult res;
 		res.border = std::move(border);
 		for (const auto& i: indices)
 		{
@@ -167,21 +177,22 @@ namespace anny
 				res.left_indices.push_back(i);
 		}
 
-		return res;
+		return (res.left_indices.size() > 0 && res.right_indices.size() > 0); // return false if couldn't split into non-empty parts
 	}
 
 
 	template <typename T>
 	typename Annoy<T>::NodePtr Annoy<T>::build_annoy_tree(const IndexVector& indices)
 	{
-		if (indices.size() <= m_leaf_size)
+		SplitResult split_res;
+
+		if (indices.size() <= m_leaf_size || !Annoy<T>::split(indices, split_res))
 		{
 			auto node = std::make_unique<Annoy<T>::LeafNode>();
 			node->indices = indices;
 			return node;
 		}
 
-		auto split_res = Annoy<T>::split(indices);
 		auto node = std::make_unique<Annoy<T>::Node>();
 		node->border = split_res.border;  // TODO: move
 		node->left = std::move(build_annoy_tree(split_res.left_indices));
