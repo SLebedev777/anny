@@ -40,6 +40,13 @@ struct CSVLoadingSettings
 	size_t n_rows;
 };
 
+struct CSVExportSettings
+{
+	char delimiter{','};
+	size_t n_rows{ UNLIMITED };
+};
+
+
 namespace detail
 {
 	template <typename Iter, typename OutIter, typename T, typename SliceFunc>
@@ -120,6 +127,27 @@ std::vector<std::vector<T>> load_csv(const std::string& filename, const CSVLoadi
 
 	file.close();
 	return data;
+}
+
+
+template <typename T>
+void to_csv(const std::vector<std::vector<T>>& data, const std::string& filename, const CSVExportSettings& settings)
+{
+	std::ofstream file(filename);
+	if (!file)
+		throw std::runtime_error("Failed to open output CSV file: " + filename);
+
+	auto end_it = (settings.n_rows != anny::utils::UNLIMITED) ? data.begin() + std::min(settings.n_rows, data.size()) : data.end();
+	for (auto it = data.begin(); it != end_it; ++it)
+	{
+		for (size_t d = 0; d < it->size() - 1; d++)
+		{
+			file << (*it)[d] << settings.delimiter;
+		}
+		file << (*it)[it->size() - 1] << std::endl;
+	}
+
+	file.close();
 }
 
 }
