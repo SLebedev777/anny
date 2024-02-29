@@ -38,15 +38,20 @@ Vec<T> l2_normalize(VecView<T> vec)
 template <typename T>
 T l2_distance_squared(VecView<T> v1, VecView<T> v2)
 {
-	auto sub = v1 - v2;
-	return l2_norm_squared(sub.view());
+	assert(v1.is_same_size(v2));
+	T d{ 0 };
+	for (size_t i = 0; i < v1.size(); i++)
+	{
+		T sub = v1[i] - v2[i];
+		d += sub * sub;
+	}
+	return d;
 }
 
 template <typename T>
 T l2_distance(VecView<T> v1, VecView<T> v2)
 {
-	auto sub = v1 - v2;
-	return l2_norm(sub.view());
+	return sqrt(l2_distance_squared(v1, v2));
 }
 
 template <typename T>
