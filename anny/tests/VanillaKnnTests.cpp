@@ -13,7 +13,7 @@ TEST(VanillaKnnTests, VanillaKnnTest0)
 		{0.0, -1.0}
 	};
 
-	VanillaKnn<double> alg(anny::l2_distance<double>);
+	VanillaKnn<double, anny::L2Distance> alg;
 	alg.fit(data);
 	
 	{
@@ -47,7 +47,7 @@ TEST(VanillaKnnTests, VanillaKnnTest1)
 		{0.0, 0.0, 1.0}
 	};
 
-	VanillaKnn<double> alg(anny::l2_distance<double>);
+	VanillaKnn<double, anny::L2Distance> alg;
 	alg.fit(data);
 
 	std::vector<double> query = { 0.0, 0.0, 1.3 };
@@ -66,7 +66,7 @@ TEST(VanillaKnnTests, VanillaKnnRadiusTest1)
 		{0.0, -1.0}
 	};
 
-	VanillaKnn<double> alg(anny::l2_distance<double>);
+	VanillaKnn<double, anny::L2Distance> alg;
 	alg.fit(data);
 
 	{

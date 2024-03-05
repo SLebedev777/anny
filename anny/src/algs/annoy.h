@@ -17,14 +17,13 @@
 namespace anny
 {
 
-	template <typename T>
+	template <typename T, typename Dist>
 	class Annoy: public IKnnAlgorithm<T>
 	{
 	public:
-		Annoy(anny::DistanceFunc<T> dist_func, size_t num_trees = 100, size_t leaf_size = 40, 
+		Annoy(size_t num_trees = 100, size_t leaf_size = 40, 
 			unsigned int seed = anny::utils::UNDEFINED_SEED)
-			: IKnnAlgorithm<T>(dist_func)
-			, m_num_trees(num_trees)
+			: m_num_trees(num_trees)
 			, m_leaf_size(leaf_size)
 			, m_gen(std::mt19937(seed != anny::utils::UNDEFINED_SEED ? seed : time(0)))  // TODO: seeding from time(0) is VERY BAD for multi-threaded (parallel) calcs 
 		{}
@@ -75,7 +74,7 @@ namespace anny
 		class NodeVisitor
 		{
 		public:
-			virtual NodeVisitResult visit(Annoy<T>::Node* node) = 0;
+			virtual NodeVisitResult visit(Annoy<T, Dist>::Node* node) = 0;
 			virtual std::vector<std::pair<T, index_t>> get_result() const = 0;
 			virtual size_t get_num_candidates() const = 0;
 			virtual size_t get_num_max_candidates() const = 0;
@@ -84,20 +83,20 @@ namespace anny
 		class KnnQueryNodeVisitor : public NodeVisitor
 		{
 		public:
-			KnnQueryNodeVisitor(Annoy<T>* context, VecView<T> vec, size_t k)
+			KnnQueryNodeVisitor(Annoy<T, Dist>* context, VecView<T> vec, size_t k)
 				: m_context(context)
 				, m_vec(vec)
 				, m_k(k)
 			{}
 
-			NodeVisitResult visit(Annoy<T>::Node* node) override
+			NodeVisitResult visit(Annoy<T, Dist>::Node* node) override
 			{
 				if (!node)
 					return {};
 
 				if (node->is_leaf())
 				{
-					const auto& indices = static_cast<Annoy<T>::LeafNode*>(node)->indices;
+					const auto& indices = static_cast<Annoy<T, Dist>::LeafNode*>(node)->indices;
 					m_candidates.insert(indices.begin(), indices.end());
 					return {};
 				}
@@ -123,7 +122,7 @@ namespace anny
 
 		private:
 			std::unordered_set<anny::index_t> m_candidates;
-			Annoy<T>* m_context;
+			Annoy<T, Dist>* m_context;
 			VecView<T> m_vec;
 			size_t m_k;
 		};
@@ -132,20 +131,20 @@ namespace anny
 		class RadiusQueryNodeVisitor : public NodeVisitor
 		{
 		public:
-			RadiusQueryNodeVisitor(Annoy<T>* context, VecView<T> vec, T radius)
+			RadiusQueryNodeVisitor(Annoy<T, Dist>* context, VecView<T> vec, T radius)
 				: m_context(context)
 				, m_vec(vec)
 				, m_radius(radius)
 			{}
 
-			NodeVisitResult visit(Annoy<T>::Node* node) override
+			NodeVisitResult visit(Annoy<T, Dist>::Node* node) override
 			{
 				if (!node)
 					return {};
 
 				if (node->is_leaf())
 				{
-					const auto& indices = static_cast<Annoy<T>::LeafNode*>(node)->indices;
+					const auto& indices = static_cast<Annoy<T, Dist>::LeafNode*>(node)->indices;
 					m_candidates.insert(indices.begin(), indices.end());
 					return {};
 				}
@@ -179,7 +178,7 @@ namespace anny
 
 		private:
 			std::unordered_set<anny::index_t> m_candidates;
-			Annoy<T>* m_context;
+			Annoy<T, Dist>* m_context;
 			VecView<T> m_vec;
 			T m_radius;
 		};
@@ -197,11 +196,12 @@ namespace anny
 		size_t m_num_trees;
 		size_t m_leaf_size;
 		std::mt19937 m_gen;
+		Dist m_dist_func;
 	};
 
 
-	template <typename T>
-	bool Annoy<T>::split(const IndexVector& indices, typename Annoy<T>::SplitResult& res)
+	template <typename T, typename Dist>
+	bool Annoy<T, Dist>::split(const IndexVector& indices, typename Annoy<T, Dist>::SplitResult& res)
 	{
 		if (indices.size() < 2)
 			return false;
@@ -247,19 +247,19 @@ namespace anny
 	}
 
 
-	template <typename T>
-	typename Annoy<T>::NodePtr Annoy<T>::build_annoy_tree(const IndexVector& indices)
+	template <typename T, typename Dist>
+	typename Annoy<T, Dist>::NodePtr Annoy<T, Dist>::build_annoy_tree(const IndexVector& indices)
 	{
 		SplitResult split_res;
 
-		if (indices.size() <= m_leaf_size || !Annoy<T>::split(indices, split_res))
+		if (indices.size() <= m_leaf_size || !Annoy<T, Dist>::split(indices, split_res))
 		{
-			auto node = std::make_unique<Annoy<T>::LeafNode>();
+			auto node = std::make_unique<Annoy<T, Dist>::LeafNode>();
 			node->indices = indices;
 			return node;
 		}
 
-		auto node = std::make_unique<Annoy<T>::Node>();
+		auto node = std::make_unique<Annoy<T, Dist>::Node>();
 		node->border = split_res.border;  // TODO: move
 		node->left = std::move(build_annoy_tree(split_res.left_indices));
 		node->right = std::move(build_annoy_tree(split_res.right_indices));
@@ -267,8 +267,8 @@ namespace anny
 	}
 
 
-	template <typename T>
-	void Annoy<T>::fit(const std::vector<std::vector<T>>& data)
+	template <typename T, typename Dist>
+	void Annoy<T, Dist>::fit(const std::vector<std::vector<T>>& data)
 	{
 		MatrixStorageVV<T> storage(data);
 		Matrix<T, MatrixStorageVV<T>> m(storage);
@@ -286,15 +286,15 @@ namespace anny
 		
 	}
 
-	template <typename T>
-	T Annoy<T>::calc_distance(VecView<T> vec, index_t index)
+	template <typename T, typename Dist>
+	T Annoy<T, Dist>::calc_distance(VecView<T> vec, index_t index)
 	{
 		return this->m_dist_func(m_data[index], vec);
 	}
 
 
-	template <typename T>
-	std::vector<std::pair<T, index_t>> Annoy<T>::calc_distances(VecView<T> vec, const IndexVector& indices)
+	template <typename T, typename Dist>
+	std::vector<std::pair<T, index_t>> Annoy<T, Dist>::calc_distances(VecView<T> vec, const IndexVector& indices)
 	{
 		assert(m_data[0].is_same_size(vec));
 
@@ -311,11 +311,11 @@ namespace anny
 	}
 
 
-	template <typename T>
-	void Annoy<T>::traverse(VecView<T> vec, NodeVisitor& visitor)
+	template <typename T, typename Dist>
+	void Annoy<T, Dist>::traverse(VecView<T> vec, NodeVisitor& visitor)
 	{
 		// MaxHeap will sort nodes by margin in that way that we will always take node with the biggest positive margin
-		std::priority_queue<std::pair<T, Annoy<T>::Node*>> pq;
+		std::priority_queue<std::pair<T, Annoy<T, Dist>::Node*>> pq;
 		for (auto& root : m_forest)
 			pq.push({ root->border.margin(vec), root.get() });
 		
@@ -330,8 +330,8 @@ namespace anny
 			if (!node->is_leaf())
 			{
 				T margin = node_res.margin;
-				Annoy<T>::Node* good_side = node->right.get();
-				Annoy<T>::Node* wrong_side = node->left.get();
+				Annoy<T, Dist>::Node* good_side = node->right.get();
+				Annoy<T, Dist>::Node* wrong_side = node->left.get();
 				if (margin < 0)
 				{
 					margin = -margin;
@@ -347,8 +347,8 @@ namespace anny
 	}
 
 
-	template <typename T>
-	IndexVector Annoy<T>::knn_query(const std::vector<T>& vec, size_t k)
+	template <typename T, typename Dist>
+	IndexVector Annoy<T, Dist>::knn_query(const std::vector<T>& vec, size_t k)
 	{
 		IndexVector result;
 		if (k == 0)
@@ -372,8 +372,8 @@ namespace anny
 	}
 
 
-	template <typename T>
-	IndexVector Annoy<T>::radius_query(const std::vector<T>& vec, T radius)
+	template <typename T, typename Dist>
+	IndexVector Annoy<T, Dist>::radius_query(const std::vector<T>& vec, T radius)
 	{
 		IndexVector result;
 

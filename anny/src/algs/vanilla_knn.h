@@ -10,12 +10,11 @@
 namespace anny
 {
 
-	template <typename T>
+	template <typename T, typename Dist>
 	class VanillaKnn: public IKnnAlgorithm<T>
 	{
 	public:
-		VanillaKnn(DistanceFunc<T> dist_func)
-			: IKnnAlgorithm<T>(dist_func)
+		VanillaKnn()
 		{}
 
 		~VanillaKnn() override {}
@@ -29,19 +28,20 @@ namespace anny
 
 	private:
 		Matrix<T, MatrixStorageVV<T>> m_data;
+		Dist m_dist_func;
 	};
 
 
-	template <typename T>
-	void VanillaKnn<T>::fit(const std::vector<std::vector<T>>& data)
+	template <typename T, typename Dist>
+	void VanillaKnn<T, Dist>::fit(const std::vector<std::vector<T>>& data)
 	{
 		MatrixStorageVV<T> storage(data);
 		Matrix<T, MatrixStorageVV<T>> m(storage);
 		m_data = std::move(m);
 	}
 
-	template <typename T>
-	IndexVector VanillaKnn<T>::knn_query(const std::vector<T>& vec, size_t k)
+	template <typename T, typename Dist>
+	IndexVector VanillaKnn<T, Dist>::knn_query(const std::vector<T>& vec, size_t k)
 	{
 		IndexVector result;
 		if (k == 0)
@@ -58,8 +58,8 @@ namespace anny
 		return result;
 	}
 
-	template <typename T>
-	IndexVector VanillaKnn<T>::radius_query(const std::vector<T>& vec, T radius)
+	template <typename T, typename Dist>
+	IndexVector VanillaKnn<T, Dist>::radius_query(const std::vector<T>& vec, T radius)
 	{
 		IndexVector result;
 		const auto N = m_data.num_rows();
@@ -76,8 +76,8 @@ namespace anny
 		return result;
 	}
 
-	template <typename T>
-	std::vector<std::pair<index_t, T>> VanillaKnn<T>::calc_distances(VecView<T> vec)
+	template <typename T, typename Dist>
+	std::vector<std::pair<index_t, T>> VanillaKnn<T, Dist>::calc_distances(VecView<T> vec)
 	{
 		const auto N = m_data.num_rows();
 

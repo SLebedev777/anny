@@ -13,13 +13,12 @@
 namespace anny
 {
 
-	template <typename T>
+	template <typename T, typename Dist = L2Distance>
 	class KDTree: public IKnnAlgorithm<T>
 	{
 	public:
 		KDTree(size_t leaf_size=40)
-			: IKnnAlgorithm<T>(anny::l2_distance<T>)  // only euclidean distance is supported
-			, m_leaf_size(leaf_size)
+			: m_leaf_size{ leaf_size }
 		{}
 
 		~KDTree() override {}
@@ -64,7 +63,7 @@ namespace anny
 		class NodeVisitor
 		{
 		public:
-			virtual void visit(KDTree<T>::Node* node) = 0;
+			virtual void visit(KDTree<T, Dist>::Node* node) = 0;
 			virtual T get_worst_distance() const = 0;
 			virtual std::vector<std::pair<T, index_t>> get_result() const = 0;
 		};
@@ -74,7 +73,7 @@ namespace anny
 		public:
 			using PQ = anny::utils::UniqueFixedSizePriorityQueue<std::pair<T, index_t>>;
 
-			KnnQueryNodeVisitor(KDTree<T>* tree, VecView<T> vec, size_t k)
+			KnnQueryNodeVisitor(KDTree<T, Dist>* tree, VecView<T> vec, size_t k)
 				: m_candidates(anny::utils::FixedSizePriorityQueue<std::pair<T, index_t>>{ k })
 				, m_tree(tree)
 				, m_vec(vec)
@@ -82,14 +81,14 @@ namespace anny
 			{
 			}
 
-			void visit(KDTree<T>::Node* node) override
+			void visit(KDTree<T, Dist>::Node* node) override
 			{
 				if (!node)
 					return;
 
 				if (node->is_leaf())
 				{
-					const auto& indices = static_cast<KDTree<T>::LeafNode*>(node)->indices;
+					const auto& indices = static_cast<KDTree<T, Dist>::LeafNode*>(node)->indices;
 					for (auto&& el : m_tree->calc_distances(m_vec, indices))
 					{
 						m_candidates.push(el);
@@ -115,7 +114,7 @@ namespace anny
 
 		private:
 			PQ m_candidates;
-			KDTree<T>* m_tree;
+			KDTree<T, Dist>* m_tree;
 			VecView<T> m_vec;
 			size_t m_k;
 		};
@@ -126,7 +125,7 @@ namespace anny
 		public:
 			using PQ = anny::utils::UniquePriorityQueue<std::pair<T, index_t>>;
 
-			RadiusQueryNodeVisitor(KDTree<T>* tree, VecView<T> vec, T radius)
+			RadiusQueryNodeVisitor(KDTree<T, Dist>* tree, VecView<T> vec, T radius)
 				: m_candidates(std::priority_queue<std::pair<T, index_t>>{})
 				, m_tree(tree)
 				, m_vec(vec)
@@ -135,14 +134,14 @@ namespace anny
 				assert(m_radius > 0.0);
 			}
 
-			void visit(KDTree<T>::Node* node) override
+			void visit(KDTree<T, Dist>::Node* node) override
 			{
 				if (!node)
 					return;
 
 				if (node->is_leaf())
 				{
-					const auto& indices = static_cast<KDTree<T>::LeafNode*>(node)->indices;
+					const auto& indices = static_cast<KDTree<T, Dist>::LeafNode*>(node)->indices;
 					for (auto&& el : m_tree->calc_distances(m_vec, indices))
 					{
 						if (el.first <= m_radius)
@@ -170,7 +169,7 @@ namespace anny
 
 		private:
 			PQ m_candidates;
-			KDTree<T>* m_tree;
+			KDTree<T, Dist>* m_tree;
 			VecView<T> m_vec;
 			T m_radius;
 		};
@@ -180,17 +179,18 @@ namespace anny
 		NodePtr build_kdtree(size_t dim, size_t leaf_size, const IndexVector& indices);
 		T calc_distance(VecView<T> vec, index_t index);
 		std::vector<std::pair<T, index_t>> calc_distances(VecView<T> vec, const IndexVector& indices);
-		void traverse_kdtree(KDTree<T>::Node* node, VecView<T> vec, size_t dim,	NodeVisitor& visitor);
+		void traverse_kdtree(KDTree<T, Dist>::Node* node, VecView<T> vec, size_t dim, NodeVisitor& visitor);
 
 	private:
 		Matrix<T, MatrixStorageVV<T>> m_data;
 		NodePtr m_tree;
 		size_t m_leaf_size;
+		Dist m_dist_func;
 	};
 
 
-	template <typename T>
-	typename anny::KDTree<T>::SplitResult anny::KDTree<T>::split(const IndexVector& indices, size_t dim)
+	template <typename T, typename Dist>
+	typename anny::KDTree<T, Dist>::SplitResult anny::KDTree<T, Dist>::split(const IndexVector& indices, size_t dim)
 	{
 		if (indices.empty())
 			return SplitResult{};
@@ -221,19 +221,19 @@ namespace anny
 		return res;
 	}
 
-	template <typename T>
-	typename anny::KDTree<T>::NodePtr anny::KDTree<T>::build_kdtree(size_t dim, size_t leaf_size, const IndexVector& indices)
+	template <typename T, typename Dist>
+	typename anny::KDTree<T, Dist>::NodePtr anny::KDTree<T, Dist>::build_kdtree(size_t dim, size_t leaf_size, const IndexVector& indices)
 	{
 		if (indices.size() <= leaf_size)
 		{
-			auto node = std::make_unique<anny::KDTree<T>::LeafNode>();
+			auto node = std::make_unique<anny::KDTree<T, Dist>::LeafNode>();
 			node->indices = indices;
 			return node;
 		}
 
 		dim %= m_data.num_cols();
-		anny::KDTree<T>::SplitResult split_res = split(indices, dim);
-		auto node = std::make_unique<anny::KDTree<T>::Node>();
+		SplitResult split_res = split(indices, dim);
+		auto node = std::make_unique<anny::KDTree<T, Dist>::Node>();
 		node->split = split_res.split;
 		node->split_index = split_res.split_index;
 		node->left = std::move(build_kdtree(dim + 1, leaf_size, split_res.left_indices));
@@ -242,8 +242,8 @@ namespace anny
 	}
 
 
-	template <typename T>
-	void KDTree<T>::fit(const std::vector<std::vector<T>>& data)
+	template <typename T, typename Dist>
+	void KDTree<T, Dist>::fit(const std::vector<std::vector<T>>& data)
 	{
 		MatrixStorageVV<T> storage(data);
 		Matrix<T, MatrixStorageVV<T>> m(storage);
@@ -255,15 +255,15 @@ namespace anny
 	}
 
 
-	template <typename T>
-	T KDTree<T>::calc_distance(VecView<T> vec, index_t index)
+	template <typename T, typename Dist>
+	T KDTree<T, Dist>::calc_distance(VecView<T> vec, index_t index)
 	{
 		return this->m_dist_func(m_data[index], vec);
 	}
 
 
-	template <typename T>
-	std::vector<std::pair<T, index_t>> KDTree<T>::calc_distances(VecView<T> vec, const IndexVector& indices)
+	template <typename T, typename Dist>
+	std::vector<std::pair<T, index_t>> KDTree<T, Dist>::calc_distances(VecView<T> vec, const IndexVector& indices)
 	{
 		assert(m_data[0].is_same_size(vec));
 
@@ -280,8 +280,8 @@ namespace anny
 	}
 
 
-	template <typename T>
-	void KDTree<T>::traverse_kdtree(KDTree<T>::Node* node, VecView<T> vec, size_t dim, NodeVisitor& visitor)
+	template <typename T, typename Dist>
+	void KDTree<T, Dist>::traverse_kdtree(KDTree<T, Dist>::Node* node, VecView<T> vec, size_t dim, NodeVisitor& visitor)
 	{
 		if (!node)
 			return;
@@ -294,8 +294,7 @@ namespace anny
 		else
 		{
 			dim %= m_data.num_cols();
-			KDTree<T>::Node* good_branch;
-			KDTree<T>::Node* opposite_branch;
+			KDTree<T, Dist>::Node* good_branch, *opposite_branch;
 			if (vec[dim] < node->split)
 			{
 				good_branch = node->left.get();
@@ -322,8 +321,8 @@ namespace anny
 	}
 
 
-	template <typename T>
-	IndexVector KDTree<T>::knn_query(const std::vector<T>& vec, size_t k)
+	template <typename T, typename Dist>
+	IndexVector KDTree<T, Dist>::knn_query(const std::vector<T>& vec, size_t k)
 	{
 		IndexVector result;
 		if (k == 0)
@@ -343,8 +342,8 @@ namespace anny
 		return result;
 	}
 
-	template <typename T>
-	IndexVector KDTree<T>::radius_query(const std::vector<T>& vec, T radius)
+	template <typename T, typename Dist>
+	IndexVector KDTree<T, Dist>::radius_query(const std::vector<T>& vec, T radius)
 	{
 		IndexVector result;
 

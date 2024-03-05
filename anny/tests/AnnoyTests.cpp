@@ -17,7 +17,7 @@ TEST(AnnoyTests, AnnoyBuildTreeTest)
 		{0.0, -1.0}
 	};
 
-	Annoy<double> alg1(anny::distance_func_factory<double>(anny::DistanceId::L2), 1, 1);
+	Annoy<double, L2Distance> alg1(1, 1);
 	alg1.fit(data);
 
 	{
@@ -40,7 +40,7 @@ TEST(AnnoyTests, AnnoyBuildTreeTest)
 	}
 
 	
-	Annoy<double> alg3(anny::distance_func_factory<double>(anny::DistanceId::L2), 1, 3);
+	Annoy<double, L2Distance> alg3(1, 3);
 	alg3.fit(data);
 
 	{
@@ -74,7 +74,7 @@ TEST(AnnoyTests, AnnoyManyTreesTest)
 		{0.0, -1.0}
 	};
 
-	Annoy<double> alg1(anny::distance_func_factory<double>(anny::DistanceId::L2), 100, 1);
+	Annoy<double, L2Distance> alg1(100, 1);
 	alg1.fit(data);
 
 	{
@@ -107,7 +107,7 @@ TEST(AnnoyTests, AnnoyTestIris1)
 	CSVLoadingSettings settings(',');
 	auto data = load_csv<double>("datasets/iris.data.csv", settings);
 
-	Annoy<double> alg(anny::distance_func_factory<double>(anny::DistanceId::L2), 100, 1);
+	Annoy<double, L2Distance> alg(100, 1);
 	alg.fit(data);
 
 	{
@@ -137,7 +137,7 @@ TEST(AnnoyTests, AnnoyTestIris1)
 		EXPECT_EQ(result.size(), data.size());
 	}
 
-	Annoy<double> alg10(anny::distance_func_factory<double>(anny::DistanceId::L2), 100, 10);
+	Annoy<double, L2Distance> alg10(100, 10);
 	alg10.fit(data);
 
 	{
@@ -172,7 +172,7 @@ TEST(AnnoyTests, AnnoyTestRadiusQuery)
 		{0.0, -1.0}
 	};
 
-	Annoy<double> alg1(anny::distance_func_factory<double>(anny::DistanceId::L2), 10, 1);
+	Annoy<double, L2Distance> alg1(10, 1);
 	alg1.fit(data);
 
 	{
@@ -201,7 +201,7 @@ TEST(AnnoyTests, AnnoyTestRadiusQuery)
 	}
 
 
-	Annoy<double> alg3(anny::distance_func_factory<double>(anny::DistanceId::L2), 10, 3);  // leaf_size = 3
+	Annoy<double, L2Distance> alg3(10, 3);  // leaf_size = 3
 	alg3.fit(data);
 
 	{
@@ -221,13 +221,12 @@ TEST(AnnoyTests, AnnoyTestRadiusQuery)
 
 TEST(AnnoyTests, AnnoyTestRandomDatasetClusters)
 {
-	return;
 
 	std::cout << "Generating dataset..." << std::endl;
 	auto data = anny::utils::make_clusters<double>(100000, 16, 1000, 1.0, -100.0, 100.0);
 
 	std::cout << "Fitting..." << std::endl;
-	Annoy<double> alg(anny::distance_func_factory<double>(anny::DistanceId::L2), 100, 1); // 100 trees, 1 point in leaf
+	Annoy<double, L2Distance> alg(100, 1); // 100 trees, 1 point in leaf
 	alg.fit(data);
 	
 	std::cout << "Searching..." << std::endl;
@@ -260,7 +259,7 @@ TEST(AnnoyTests, AnnoyTestRandomDatasetCosine)
 		}
 	);
 
-	Annoy<double> alg(anny::distance_func_factory<double>(anny::DistanceId::COSINE), 100, 1); // 100 trees, 1 point in leaf
+	Annoy<double, CosineDistance> alg(100, 1); // 100 trees, 1 point in leaf
 	alg.fit(data);
 
 	std::default_random_engine gen;

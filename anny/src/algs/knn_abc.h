@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include "../core/distance.h"
 
 namespace anny
 {
@@ -15,17 +14,11 @@ namespace anny
 	class IKnnAlgorithm
 	{
 	public:
-		explicit IKnnAlgorithm(DistanceFunc<T> dist_func)
-			: m_dist_func{ dist_func }
-		{}
-
 		virtual ~IKnnAlgorithm() {}
 
 		virtual void fit(const std::vector<std::vector<T>>& data) = 0;
 		virtual IndexVector knn_query(const std::vector<T>& vec, size_t k) = 0;
-		virtual IndexVector radius_query(const std::vector<T>& vec, T radius) = 0;
-	
-		const DistanceFunc<T> m_dist_func;
+		virtual IndexVector radius_query(const std::vector<T>& vec, T radius) = 0;	
 	};
 
 }

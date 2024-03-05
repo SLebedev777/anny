@@ -107,4 +107,17 @@ DistanceFunc<T> distance_func_factory(DistanceId dist_id)
 	}
 }
 
+struct L2Distance
+{
+	template <typename T>
+	inline T operator()(VecView<T> v1, VecView<T> v2) { return l2_distance(v1, v2); }
+};
+
+
+struct CosineDistance
+{
+	template <typename T>
+	inline T operator()(VecView<T> v1, VecView<T> v2) { return cosine_distance(v1, v2); }
+};
+
 }
