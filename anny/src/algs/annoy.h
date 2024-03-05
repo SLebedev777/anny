@@ -5,6 +5,7 @@
 #include <limits>
 #include <random>
 #include <ctime>
+#include <unordered_set>
 #include "knn_abc.h"
 #include "../core/vec_view.h"
 #include "../core/matrix.h"
@@ -65,59 +66,124 @@ namespace anny
 
 		friend class NodeVisitor;
 
+		struct NodeVisitResult
+		{
+			T margin{ std::numeric_limits<T>::infinity() };
+			bool need_take_wrong_side{ false };
+		};
+
 		class NodeVisitor
 		{
 		public:
-			virtual void visit(Annoy<T>::Node* node) = 0;
-			virtual T get_worst_distance() const = 0;
+			virtual NodeVisitResult visit(Annoy<T>::Node* node) = 0;
 			virtual std::vector<std::pair<T, index_t>> get_result() const = 0;
+			virtual size_t get_num_candidates() const = 0;
+			virtual size_t get_num_max_candidates() const = 0;
 		};
 
 		class KnnQueryNodeVisitor : public NodeVisitor
 		{
 		public:
-			using PQ = anny::utils::UniqueFixedSizePriorityQueue<std::pair<T, index_t>>;
-
 			KnnQueryNodeVisitor(Annoy<T>* context, VecView<T> vec, size_t k)
-				: m_candidates(anny::utils::FixedSizePriorityQueue<std::pair<T, index_t>>{ k })
-				, m_context(context)
+				: m_context(context)
 				, m_vec(vec)
 				, m_k(k)
-			{
-			}
+			{}
 
-			void visit(Annoy<T>::Node* node) override
+			NodeVisitResult visit(Annoy<T>::Node* node) override
 			{
 				if (!node)
-					return;
+					return {};
 
 				if (node->is_leaf())
 				{
 					const auto& indices = static_cast<Annoy<T>::LeafNode*>(node)->indices;
-					for (auto&& el : m_context->calc_distances(m_vec, indices))
-					{
-						m_candidates.push(el);
-					}
+					m_candidates.insert(indices.begin(), indices.end());
+					return {};
 				}
-			}
 
-			T get_worst_distance() const override
-			{
-				return (!m_candidates.empty()) ? m_candidates.top().first : std::numeric_limits<T>::infinity();
+				return { node->border.margin(m_vec), true };
 			}
 
 			std::vector<std::pair<T, index_t>> get_result() const override
 			{
-				PQ tmp(m_candidates);
-				return anny::utils::pq2vec(std::move(tmp));
+				std::vector<anny::index_t> indices(m_candidates.begin(), m_candidates.end()); // copying here
+				return m_context->calc_distances(m_vec, indices);
+			}
+
+			size_t get_num_candidates() const override
+			{
+				return m_candidates.size();
+			}
+
+			size_t get_num_max_candidates() const override
+			{
+				return m_k;
 			}
 
 		private:
-			PQ m_candidates;
+			std::unordered_set<anny::index_t> m_candidates;
 			Annoy<T>* m_context;
 			VecView<T> m_vec;
 			size_t m_k;
 		};
+
+
+		class RadiusQueryNodeVisitor : public NodeVisitor
+		{
+		public:
+			RadiusQueryNodeVisitor(Annoy<T>* context, VecView<T> vec, T radius)
+				: m_context(context)
+				, m_vec(vec)
+				, m_radius(radius)
+			{}
+
+			NodeVisitResult visit(Annoy<T>::Node* node) override
+			{
+				if (!node)
+					return {};
+
+				if (node->is_leaf())
+				{
+					const auto& indices = static_cast<Annoy<T>::LeafNode*>(node)->indices;
+					m_candidates.insert(indices.begin(), indices.end());
+					return {};
+				}
+
+				T margin = node->border.margin(m_vec);
+
+				return { margin, std::fabs(margin) <= m_radius };
+			}
+
+			std::vector<std::pair<T, index_t>> get_result() const override
+			{
+				std::vector<anny::index_t> indices(m_candidates.begin(), m_candidates.end()); // copying here
+				auto result = m_context->calc_distances(m_vec, indices);
+				auto it = std::upper_bound(result.begin(), result.end(), m_radius, [](T value, const auto& item)
+					{
+						return value < item.first;
+					});
+				result.erase(it, result.end());
+				return result;
+			}
+
+			size_t get_num_candidates() const override
+			{
+				return m_candidates.size();
+			}
+
+			size_t get_num_max_candidates() const override
+			{
+				return m_context->m_data.num_rows();
+			}
+
+		private:
+			std::unordered_set<anny::index_t> m_candidates;
+			Annoy<T>* m_context;
+			VecView<T> m_vec;
+			T m_radius;
+		};
+
 
 		bool split(const IndexVector& indices, SplitResult& result);
 		NodePtr build_annoy_tree(const IndexVector& indices);
@@ -236,7 +302,7 @@ namespace anny
 
 		for (const auto& index : indices)
 		{
-			distances.push_back({ this->m_dist_func(m_data[index], vec), index });
+			distances.push_back({ this->m_dist_func(m_data[index], vec), index});
 		}
 
 		std::stable_sort(distances.begin(), distances.end());
@@ -248,51 +314,35 @@ namespace anny
 	template <typename T>
 	void Annoy<T>::traverse(VecView<T> vec, NodeVisitor& visitor)
 	{
+		// MaxHeap will sort nodes by margin in that way that we will always take node with the biggest positive margin
 		std::priority_queue<std::pair<T, Annoy<T>::Node*>> pq;
 		for (auto& root : m_forest)
 			pq.push({ root->border.margin(vec), root.get() });
 		
-		while (!pq.empty())
+		const auto k = visitor.get_num_max_candidates(); // max total candidates for all trees in forest
+
+		while (visitor.get_num_candidates() < k && !pq.empty())
 		{
-			auto [margin, node] = pq.top();  // margin is signed distance from query point to current hyperplane
+			auto [prev_margin, node] = pq.top();
 			pq.pop();
 
-			if (node->is_leaf())
+			auto node_res = visitor.visit(node);
+			if (!node->is_leaf())
 			{
-				visitor.visit(node);
+				T margin = node_res.margin;
+				Annoy<T>::Node* good_side = node->right.get();
+				Annoy<T>::Node* wrong_side = node->left.get();
+				if (margin < 0)
+				{
+					margin = -margin;
+					std::swap(good_side, wrong_side);
+				}
+				pq.push({ margin, good_side });
+				if (node_res.need_take_wrong_side)
+				{
+					pq.push({ -margin, wrong_side });
+				}
 			}
-			else
-			{
-				T distance_to_border = std::fabs(margin);
-
-				Annoy<T>::Node* good_branch;
-				Annoy<T>::Node* opposite_branch;
-				if (margin < 0.0)
-				{
-					good_branch = node->left.get();
-					opposite_branch = node->right.get();
-				}
-				else
-				{
-					good_branch = node->right.get();
-					opposite_branch = node->left.get();
-				}
-
-				if (good_branch)
-				{
-					auto good_br_margin = !good_branch->is_leaf() ? good_branch->border.margin(vec) : std::numeric_limits<T>::infinity();
-					pq.push({ good_br_margin, good_branch });
-				}
-				
-				// shall we check the opposite branch for possible neighbors?
-				if (opposite_branch && (distance_to_border < visitor.get_worst_distance()))
-				{
-					auto opp_br_margin = !opposite_branch->is_leaf() ? opposite_branch->border.margin(vec) : std::numeric_limits<T>::infinity();
-					pq.push({ opp_br_margin, opposite_branch });
-				}
-				
-			}
-
 		}
 	}
 
@@ -314,7 +364,8 @@ namespace anny
 
 		traverse(query.view(), visitor);
 		auto candidates_vec = visitor.get_result();
-		std::transform(candidates_vec.begin(), candidates_vec.begin() + k, std::back_inserter(result), [](auto el) { return el.second; });
+		size_t actual_k = std::min(k, candidates_vec.size());
+		std::transform(candidates_vec.begin(), candidates_vec.begin() + actual_k, std::back_inserter(result), [](auto el) { return el.second; });
 
 		return result;
 
@@ -324,7 +375,18 @@ namespace anny
 	template <typename T>
 	IndexVector Annoy<T>::radius_query(const std::vector<T>& vec, T radius)
 	{
-		throw std::runtime_error("Not implemented!");
+		IndexVector result;
+
+		Vec<T> query(vec);
+
+		RadiusQueryNodeVisitor visitor(this, query.view(), radius);
+
+		traverse(query.view(), visitor);
+		auto candidates_vec = visitor.get_result();
+		std::transform(candidates_vec.begin(), candidates_vec.end(), std::back_inserter(result), [](auto el) { return el.second; });
+
+		return result;
+
 	}
 
 }
