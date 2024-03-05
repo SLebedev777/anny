@@ -66,7 +66,7 @@ T cosine_similarity(VecView<T> v1, VecView<T> v2, bool need_normalize=false)
 	auto sim = dot(v1, v2);
 	if (need_normalize)
 	{
-		sim /= l2_norm(v1) * l2_norm(v2);
+		sim /= sqrt(l2_norm_squared(v1) * l2_norm_squared(v2));  // calc sqrt once for 2 vectors
 	}
 	return sim;
 }
