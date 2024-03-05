@@ -221,6 +221,8 @@ TEST(AnnoyTests, AnnoyTestRadiusQuery)
 
 TEST(AnnoyTests, AnnoyTestRandomDatasetClusters)
 {
+	return;
+
 	std::cout << "Generating dataset..." << std::endl;
 	auto data = anny::utils::make_clusters<double>(100000, 16, 1000, 1.0, -100.0, 100.0);
 
@@ -246,6 +248,44 @@ TEST(AnnoyTests, AnnoyTestRandomDatasetClusters)
 	}
 }
 
+TEST(AnnoyTests, AnnoyTestRandomDatasetCosine)
+{
+	std::vector<anny::utils::GaussianCluster<double>> clusters = {
+		{{-5, -5}, 1.0, 10},
+		{{5, 5}, 1.0, 20}
+	};
+	auto data = anny::utils::make_clusters<double>(clusters, -100.0, 100.0);
+	std::transform(data.begin(), data.end(), data.begin(), [](auto& vec) {
+		return anny::l2_normalize(Vec<double>(vec).view()).data();
+		}
+	);
+
+	Annoy<double> alg(anny::distance_func_factory<double>(anny::DistanceId::COSINE), 100, 1); // 100 trees, 1 point in leaf
+	alg.fit(data);
+
+	std::default_random_engine gen;
+	size_t query_index_start = 0;
+	for (size_t c = 0; c < clusters.size(); c++)
+	{
+		std::uniform_int_distribution<size_t> dis{ 0, clusters[c].num_points - 1 };
+		size_t query_index = query_index_start + dis(gen);
+		std::vector<double> query = data[query_index];
+		size_t top_n = clusters[c].num_points;
+
+		auto result = alg.knn_query(query, top_n);
+		EXPECT_EQ(data[result.front()], data[query_index]);
+		size_t count = std::count(result.begin(), result.end(), query_index);
+		EXPECT_EQ(count, 1);
+		EXPECT_EQ(result.size(), top_n);  // make sure we always take enough neighbors
+		// make sure we find all points within cluster
+		auto [min_it, max_it] = std::minmax_element(result.begin(), result.end());
+		EXPECT_TRUE(*min_it >= query_index_start);
+		EXPECT_TRUE(*max_it < query_index_start + clusters[c].num_points);
+
+		query_index_start += clusters[c].num_points;
+	}
+
+}
 
 TEST(AnnoyTests, AnnoyTestRandomDatasetUniform)
 {

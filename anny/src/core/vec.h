@@ -90,6 +90,8 @@ public:
         return VecView<value_type>(iter_start, iter_end);
     }
 
+    std::vector<Vec::value_type> data() const { return m_data; }  // copy
+
     // math
 
     Vec& operator+=(T k)
