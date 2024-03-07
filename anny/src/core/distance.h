@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <functional>
 #include "vec_view.h"
+#include "matrix.h"
 
 namespace anny
 {
@@ -34,6 +35,23 @@ Vec<T> l2_normalize(VecView<T> vec)
 {
 	return vec / l2_norm(vec);
 }
+
+template <typename T>
+void l2_normalize_inplace(VecView<T> vec)
+{
+	vec /= l2_norm(vec);
+}
+
+
+template <typename T, typename Storage>
+void l2_normalize_inplace(Matrix<T, Storage>& matrix)
+{
+	for (size_t row = 0; row < matrix.num_rows(); row++)
+	{
+		anny::l2_normalize_inplace(matrix[row]);
+	}
+}
+
 
 template <typename T>
 T l2_distance_squared(VecView<T> v1, VecView<T> v2)

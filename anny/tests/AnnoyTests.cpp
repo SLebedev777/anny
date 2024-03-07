@@ -221,7 +221,6 @@ TEST(AnnoyTests, AnnoyTestRadiusQuery)
 
 TEST(AnnoyTests, AnnoyTestRandomDatasetClusters)
 {
-
 	std::cout << "Generating dataset..." << std::endl;
 	auto data = anny::utils::make_clusters<double>(100000, 16, 1000, 1.0, -100.0, 100.0);
 
@@ -254,10 +253,6 @@ TEST(AnnoyTests, AnnoyTestRandomDatasetCosine)
 		{{5, 5}, 1.0, 20}
 	};
 	auto data = anny::utils::make_clusters<double>(clusters, -100.0, 100.0);
-	std::transform(data.begin(), data.end(), data.begin(), [](auto& vec) {
-		return anny::l2_normalize(Vec<double>(vec).view()).data();
-		}
-	);
 
 	Annoy<double, CosineDistance> alg(100, 1); // 100 trees, 1 point in leaf
 	alg.fit(data);

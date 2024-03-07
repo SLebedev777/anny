@@ -230,9 +230,17 @@ namespace anny
 
 		// calculate border hyperplane going perpendicularly through the middle of these 2 points
 		Vec<T> normal = v1 - v2;
-		Vec<T> midpoint = 0.5 * (v1 + v2);
 		normal = l2_normalize(normal.view());
-		Hyperplane<T> border{ normal, midpoint };
+		Hyperplane<T> border;
+		if constexpr (std::is_same_v<Dist, anny::CosineDistance>)
+		{
+			border = std::move(Hyperplane<T>{ normal }); // for cosine metric, all splitting hyperplanes go through zero
+		}
+		else
+		{
+			Vec<T> midpoint = 0.5 * (v1 + v2);
+			border = std::move(Hyperplane<T>{ normal, midpoint });
+		}
 
 		res.border = std::move(border);
 		for (const auto& i: indices)
@@ -273,6 +281,11 @@ namespace anny
 		MatrixStorageVV<T> storage(data);
 		Matrix<T, MatrixStorageVV<T>> m(storage);
 		m_data = std::move(m);
+
+		if constexpr (std::is_same_v<Dist, anny::CosineDistance>)
+		{
+			anny::l2_normalize_inplace(m_data);
+		}
 
 		IndexVector all_indices(m_data.num_rows());
 		std::iota(all_indices.begin(), all_indices.end(), 0);
@@ -358,6 +371,11 @@ namespace anny
 		k = (k > N) ? N : k;
 
 		Vec<T> query(vec);
+		
+		if constexpr (std::is_same_v<Dist, anny::CosineDistance>)
+		{
+			anny::l2_normalize_inplace(query.view());
+		}
 
 		size_t num_candidates = k * m_num_trees;
 		KnnQueryNodeVisitor visitor(this, query.view(), num_candidates);
@@ -378,6 +396,10 @@ namespace anny
 		IndexVector result;
 
 		Vec<T> query(vec);
+		if constexpr (std::is_same_v<Dist, anny::CosineDistance>)
+		{
+			anny::l2_normalize_inplace(query.view());
+		}
 
 		RadiusQueryNodeVisitor visitor(this, query.view(), radius);
 
