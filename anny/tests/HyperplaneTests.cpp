@@ -33,25 +33,25 @@ TEST(HyperplaneTests, HyperplaneDistanceTest)
     }
 
     {
-        const float c = 12345.12345f;
-        Vec<float> n{ -c, c };  // 45 degrees diagonal 2d line
+        const double c = 12345.12345;
+        Vec<double> n{ -c, c };  // 45 degrees diagonal 2d line
         n = l2_normalize(n.view());
 
-        float intercept = -sqrt(2.0f);  // so the plane goes through points (-2; 0) and (0; 2)
-        Hyperplane<float> h(n, intercept);
+        double intercept = -sqrt(2.0);  // so the plane goes through points (-2; 0) and (0; 2)
+        Hyperplane<double> h(n, intercept);
 
-        Vec<float> point1{ -2.0f, 0.0f };
-        Vec<float> point2{ 0.0f, 2.0f };
-        Vec<float> point3{ 1.0f, 6.0f }; // 2 points equidistant from plane
-        Vec<float> point4{ 4.0f, 3.0f };
+        Vec<double> point1{ -2.0, 0.0 };
+        Vec<double> point2{ 0.0, 2.0 };
+        Vec<double> point3{ 1.0, 6.0 }; // 2 points equidistant from plane
+        Vec<double> point4{ 4.0, 3.0 };
 
         auto d1 = h.distance(point1.view());
         auto d2 = h.distance(point2.view());
         auto d3 = h.distance(point3.view());
         auto d4 = h.distance(point4.view());
-
-        EXPECT_TRUE(anny::are_floats_equal(d1, 0.0f));
-        EXPECT_TRUE(anny::are_floats_equal(d2, 0.0f));
+        
+        EXPECT_TRUE(anny::are_floats_equal(d1, 0.0));
+        EXPECT_TRUE(anny::are_floats_equal(d2, 0.0));
         EXPECT_TRUE(anny::are_floats_equal(d3, d4));
 
     }
@@ -100,21 +100,21 @@ TEST(HyperplaneTests, HyperplaneThroughGivenPointTest)
     }
 
     {
-        const float c = 1.0f;
-        Vec<float> n{ -c, c };  // 45 degrees diagonal 2d line
+        const double c = 1.0;
+        Vec<double> n{ -c, c };  // 45 degrees diagonal 2d line
         n = l2_normalize(n.view());
-        Vec<float> x0{ 2.5f, 4.5f };
+        Vec<double> x0{ 2.5f, 4.5f };
 
-        Hyperplane<float> h(n, x0);
+        Hyperplane<double> h(n, x0);
 
-        Vec<float> point1{ 0.0f, 2.0f };
-        Vec<float> point3{ 1.0f, 6.0f }; // 2 points equidistant from plane
-        Vec<float> point4{ 4.0f, 3.0f };
+        Vec<double> point1{ 0.0, 2.0 };
+        Vec<double> point3{ 1.0, 6.0 }; // 2 points equidistant from plane
+        Vec<double> point4{ 4.0, 3.0 };
 
         auto d1 = h.distance(point1.view());
 
-        EXPECT_TRUE(anny::are_floats_equal(h.intercept, -sqrtf(2.0f)));
-        EXPECT_TRUE(anny::are_floats_equal(d1, 0.0f));
+        EXPECT_TRUE(anny::are_floats_equal(h.intercept, -sqrt(2.0)));
+        EXPECT_TRUE(anny::are_floats_equal(d1, 0.0));
         std::cout << d1 << std::endl;
         std::cout << "[" << h.normal[0] << ", " << h.normal[1] << std::endl;
     }

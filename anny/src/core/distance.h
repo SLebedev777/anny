@@ -75,7 +75,7 @@ T l2_distance(VecView<T> v1, VecView<T> v2)
 template <typename T>
 bool is_l2_normalized(VecView<T> v)
 {
-	return are_floats_equal(T{ 1.0 }, l2_norm_squared(v));
+	return are_floats_equal(T{ 1.0 }, l2_norm(v));
 }
 
 template <typename T>

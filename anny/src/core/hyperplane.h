@@ -24,13 +24,15 @@ namespace anny
 			: normal{ _normal }
 			, intercept{ _intercept }
 		{
-			assert(anny::is_l2_normalized(normal.view()));
+			normal = anny::l2_normalize(normal.view());
 		}
 
 		Hyperplane(const Vec<T>& _normal, const Vec<T>& x0)
 			: normal{ _normal }
 			, intercept{ -anny::dot(_normal, x0) }
-		{}
+		{
+			normal = anny::l2_normalize(normal.view());
+		}
 
 		T margin(VecView<T> v)
 		{

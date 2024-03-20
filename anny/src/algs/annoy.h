@@ -230,7 +230,7 @@ namespace anny
 
 		// calculate border hyperplane going perpendicularly through the middle of these 2 points
 		Vec<T> normal = v1 - v2;
-		normal = l2_normalize(normal.view());
+		normal = anny::l2_normalize(normal.view());
 		Hyperplane<T> border;
 		if constexpr (std::is_same_v<Dist, anny::CosineDistance>)
 		{
