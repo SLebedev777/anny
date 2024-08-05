@@ -33,7 +33,7 @@ private:
 		T value{};
 		NodePtr next{ nullptr };  // owning pointer at layer 0
 		std::vector<Node*> next_layers;  // non-owning links (shortcuts) to next nodes at upper layers
-		size_t num_layers() const { return next.size(); }
+		size_t num_layers() const { return next_layers.size(); }
 	};
 
 	NodePtr m_skiplist{ nullptr };
@@ -73,15 +73,14 @@ SkipList<Key, T, Compare>::SkipList(const std::vector<std::pair<Key, T>>& data)
 
 		NodePtr curr_node = std::make_unique<Node>(sorted_data[i].first, sorted_data[i].second, curr_layer + 1);
 		Node* curr_ptr = curr_node.get();
+		std::cout << "Node with key " << curr_ptr->key << " has " << curr_ptr->num_layers() << " layers.\n";
 
-		std::cout << "Node with key " << curr_ptr->key << " has " << curr_layer + 1 << " layers.\n";
-
-		for (size_t k = 0; k <= curr_layer; k++)
+		for (size_t k = 0; k < curr_ptr->num_layers(); k++)
 		{
 			prev[k]->next_layers[k] = curr_ptr;
 		}
 		prev[0]->next = std::move(curr_node);
-		for (size_t k = 0; k <= curr_layer; k++)
+		for (size_t k = 0; k < curr_ptr->num_layers(); k++)
 		{
 			prev[k] = curr_ptr;  // update prev
 		}
