@@ -8,11 +8,13 @@ list(APPEND SOURCES
 	"MatrixTests.cpp"
 	"DistanceTests.cpp"
 	"HyperplaneTests.cpp"
+	"GraphTests.cpp"
 	"CsvLoaderTests.cpp"
 	"FixedSizePriorityQueueTests.cpp"
 	"VanillaKnnTests.cpp"
 	"KDTreeTests.cpp"
 	"AnnoyTests.cpp"
+	"SkipListTests.cpp"
 )
 
 include(FetchContent)
