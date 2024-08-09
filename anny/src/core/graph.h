@@ -109,6 +109,11 @@ namespace anny
             return true;
         }
 
+        bool is_empty() const noexcept
+        {
+            return m_adj.empty();
+        }
+
     private:
         size_t calc_num_edges() const
         {

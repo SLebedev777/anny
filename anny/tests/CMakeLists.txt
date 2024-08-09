@@ -15,6 +15,7 @@ list(APPEND SOURCES
 	"KDTreeTests.cpp"
 	"AnnoyTests.cpp"
 	"SkipListTests.cpp"
+	"HNSWTests.cpp"
 )
 
 include(FetchContent)
