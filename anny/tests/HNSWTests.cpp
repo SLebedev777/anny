@@ -16,9 +16,9 @@ TEST(HNSWTests, HNSWBuildTestSimple)
 		{0.0, -1.0}
 	};
 
-	HNSW<double, L2Distance> alg1(2, 2);
+	HNSW<double, L2Distance> alg1(/*M*/ 2, /*efConstruction*/ 2, /*efSearch*/ data.size());
 	alg1.fit(data);
-	/*
+	
 	{
 		std::vector<double> query = { 5.0, 0.0 };
 		auto result = alg1.knn_query(query, 3);
@@ -37,6 +37,6 @@ TEST(HNSWTests, HNSWBuildTestSimple)
 		std::vector<index_t> expected{ 0 };
 		EXPECT_EQ(result, expected);
 	}
-	*/
+	
 }
 

@@ -20,11 +20,12 @@ namespace anny
 	class HNSW: public IKnnAlgorithm<T>
 	{
 	public:
-		HNSW(size_t M=16, size_t ef_construction=100)
+		HNSW(size_t M=16, size_t ef_construction=100, size_t ef_search=100)
 			: m_gen{ std::mt19937(777) }
 			, m_M{M}                             // number of element's neighbors at construction time
 			, m_Mmax0{ 2 * M }                   // max number of element's neighbors at level 0
 			, m_efConstruction{ef_construction}  // ef stands for "expansion factor"
+			, m_efSearch{ef_search}
 			, m_mL { 1.0 / log(1.0 * M) }        // norm factor to calc random level for an element
 		{}
 
@@ -34,6 +35,9 @@ namespace anny
 		IndexVector knn_query(const std::vector<T>& vec, size_t k) override;
 		IndexVector radius_query(const std::vector<T>& vec, T radius) override;
 
+		void set_ef_search(size_t ef) { m_efSearch = ef; }
+		size_t get_ef_search() const noexcept { return m_efSearch; }
+
 	private:
 		// aliases
 		using DI = anny::utils::DistIndexPair<T, index_t>;
@@ -41,16 +45,17 @@ namespace anny
 		using level_t = int;
 
 		// constants
-		static constexpr level_t MAX_LAYERS = 4;
+		static constexpr level_t MAX_LAYERS = 4;  // TODO: take value from FAISS code
 
 		// functions
-		IndexVector search_layer(VecView<T> q, const IndexVector& ep, size_t ef, size_t lc);
+		std::vector<DI> search_layer(VecView<T> q, const IndexVector& ep, size_t ef, size_t lc);
 		void insert(index_t index);
-		IndexVector select_neighbors(const IndexVector& ep, size_t M) const noexcept;
+		IndexVector select_neighbors(std::vector<DI> neighbors, size_t M, bool is_sorted=true) const noexcept;
 		void shrink_connections(index_t index, size_t lc, size_t M);
 		void clear();
 		level_t get_random_level();
 		bool is_hnsw_empty() const noexcept;
+		IndexVector knn_search(VecView<T> q, size_t k);
 
 		T calc_distance(VecView<T> vec, index_t index);
 		std::vector<DI> calc_distances(VecView<T> vec, const IndexVector& indices);
@@ -64,6 +69,7 @@ namespace anny
 		size_t m_M{ 0 };
 		size_t m_Mmax0{ 0 };
 		size_t m_efConstruction{ 0 };
+		size_t m_efSearch{ 0 };
 		double m_mL{ 0 };
 		level_t m_maxLevel{ -1 };   // curr max level (top level) during construction
 		index_t m_entryPoint{ 0 }; // curr entry point at top level during construction
@@ -79,7 +85,7 @@ namespace anny
 
 
 	template <typename T, typename Dist>
-	IndexVector HNSW<T, Dist>::search_layer(VecView<T> q, const IndexVector& ep, size_t ef, size_t lc)
+	std::vector<typename HNSW<T, Dist>::DI> HNSW<T, Dist>::search_layer(VecView<T> q, const IndexVector& ep, size_t ef, size_t lc)
 	{
 		std::unordered_set<index_t> visited;
 
@@ -123,10 +129,7 @@ namespace anny
 			}
 		}
 
-		auto result_pairs = anny::utils::pq2vec(std::move(w));
-		IndexVector result;
-		std::transform(result_pairs.begin(), result_pairs.end(), std::back_inserter(result), [](auto el) { return el.second; });
-		return result;
+		return anny::utils::pq2vec(std::move(w));
 	}
 
 
@@ -152,13 +155,17 @@ namespace anny
 
 
 	template <typename T, typename Dist>
-	IndexVector HNSW<T, Dist>::select_neighbors(const IndexVector& ep, size_t M) const noexcept
+	IndexVector HNSW<T, Dist>::select_neighbors(std::vector<DI> neighbors, size_t M, bool is_sorted) const noexcept
 	{
-		if (M >= ep.size())
-			return ep;
-
-		IndexVector result(M);
-		std::copy(ep.begin(), ep.begin() + M, result.begin());
+		if (!is_sorted)
+		{
+			std::stable_sort(neighbors.begin(), neighbors.end());  // maybe overkill, because almost always input is already sorted by distance
+		}
+		IndexVector result;
+		M = std::min(M, neighbors.size());
+		std::transform(neighbors.begin(), neighbors.begin() + M, std::back_inserter(result), [](const auto& item) {
+			return item.second;
+			});
 		return result;
 	}
 
@@ -166,11 +173,13 @@ namespace anny
 	template <typename T, typename Dist>
 	void HNSW<T, Dist>::shrink_connections(index_t index, size_t lc, size_t M)
 	{
-		const auto& all_neighbors = m_layers[lc].get_adj_vertices(index);
-		auto neighbors = select_neighbors(all_neighbors, M);
-		for (const auto& n : all_neighbors)
+		const auto& neighbors_indices = m_layers[lc].get_adj_vertices(index);
+		VecView<T> vec = m_data[index];
+		auto neighbors_with_distances = calc_distances(vec, neighbors_indices);
+		IndexVector selected_neighbors = select_neighbors(neighbors_with_distances, M, /*is_sorted*/ true);
+		for (const auto& n : neighbors_indices)
 		{
-			if (auto it = std::find(neighbors.begin(), neighbors.end(), n); it == neighbors.end())
+			if (auto it = std::find(selected_neighbors.begin(), selected_neighbors.end(), n); it == selected_neighbors.end())
 				m_layers[lc].delete_edge(index, n);
 		}
 	}
@@ -205,13 +214,14 @@ namespace anny
 		// greedy search for finding nearest entry point at curr max level 
 		for (; lc > insert_level; lc--)
 		{
-			ep = search_layer(q, ep, /*ef*/ 1, lc);
+			auto search_res = search_layer(q, ep, /*ef*/ 1, lc);
+			ep = { search_res.front().second }; // because we take only 1 closest neighbor on each of these layers
 		}
 		// insert vertex and add edges to closest neighbors
 		for (lc = std::min(insert_level, m_maxLevel); lc >= 0; lc--)
 		{
-			ep = search_layer(q, ep, m_efConstruction, lc);
-			IndexVector neighbors = select_neighbors(ep, m_M);
+			auto search_res = search_layer(q, ep, m_efConstruction, lc);
+			IndexVector neighbors = select_neighbors(search_res, m_M);
 
 			auto& g = m_layers[lc];
 			for (const auto& n : neighbors)
@@ -235,6 +245,24 @@ namespace anny
 			m_maxLevel = insert_level;
 			m_entryPoint = index;
 		}
+	}
+
+
+	template <typename T, typename Dist>
+	IndexVector HNSW<T, Dist>::knn_search(VecView<T> q, size_t k)
+	{
+		IndexVector ep = { m_entryPoint };
+		level_t lc = m_maxLevel;
+		// greedy search until level 1 
+		for (; lc >= 1; lc--)
+		{
+			auto search_res = search_layer(q, ep, /*ef*/ 1, lc);
+			ep = { search_res.front().second }; // because we take only 1 closest neighbor on each of these layers
+		}
+		// search at level 0
+		auto search_res = search_layer(q, ep, m_efSearch, 0);
+		IndexVector result = select_neighbors(search_res, k, /*is_sorted*/ true);
+		return result;
 	}
 
 
@@ -300,7 +328,7 @@ namespace anny
 
 		Vec<T> query(vec);
 
-		// search here
+		result = knn_search(query.view(), k);
 
 		return result;
 	}
