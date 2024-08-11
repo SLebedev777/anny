@@ -11,6 +11,8 @@
 #include "../core/distance.h"
 #include "../core/graph.h"
 #include "../utils/utils_defs.h"
+#include "../utils/progress_bar.h"
+
 
 
 namespace anny
@@ -283,9 +285,12 @@ namespace anny
 		for (level_t l = 0; l < MAX_LAYERS; l++)
 			m_layers.push_back(anny::Graph<index_t>());
 
-		for (size_t index = 0; index < m_data.num_rows(); index++)
 		{
-			insert(index);
+			anny::utils::ProgressBar pb(1000);
+			for (size_t index = 0; index < m_data.num_rows(); index++, pb.update())
+			{
+				insert(index);
+			}
 		}
 
 	}
