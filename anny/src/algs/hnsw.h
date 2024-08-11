@@ -45,7 +45,7 @@ namespace anny
 		using level_t = int;
 
 		// constants
-		static constexpr level_t MAX_LAYERS = 4;  // TODO: take value from FAISS code
+		static constexpr level_t MAX_LAYERS = 8;  // simulations show that for 5 <= M <= 100 (most use-cases), MAX_LAYERS < 8
 
 		// functions
 		std::vector<DI> search_layer(VecView<T> q, const IndexVector& ep, size_t ef, size_t lc);
@@ -138,7 +138,7 @@ namespace anny
 	{
 		std::uniform_real_distribution<double> dis(0.0, 1.0);
 		double r = -log(dis(m_gen)) * m_mL;
-		level_t level = static_cast<level_t>(r);
+		auto level = static_cast<level_t>(r);
 		level = (level > MAX_LAYERS) ? MAX_LAYERS : level;
 		return level;
 	}
